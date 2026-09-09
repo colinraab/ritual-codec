@@ -1,0 +1,154 @@
+name: Build Ritual Codec
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-x64
+            os: windows-latest
+            au: 'OFF'
+            vst3: 'ON'
+            python: python
+            apple_universal: 'OFF'
+          - platform: macos-universal
+            os: macos-14
+            au: 'ON'
+            vst3: 'ON'
+            python: python3
+            apple_universal: 'ON'
+          - platform: linux-x64
+            os: ubuntu-24.04
+            au: 'OFF'
+            vst3: 'ON'
+            python: python3
+            apple_universal: 'OFF'
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            libasound2-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libglu1-mesa-dev \
+            libx11-dev \
+            libxcomposite-dev \
+            libxcursor-dev \
+            libxext-dev \
+            libxinerama-dev \
+            libxi-dev \
+            libxrandr-dev \
+            xauth \
+            xvfb
+
+      - name: Configure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake_args=(
+            -S .
+            -B build
+            -DCMAKE_BUILD_TYPE=Release
+            -DRITUAL_BUILD_CLI=ON
+            -DRITUAL_BUILD_VST3=${{ matrix.vst3 }}
+            -DRITUAL_BUILD_AU=${{ matrix.au }}
+            -DRITUAL_BUILD_TESTS=ON
+          )
+          if [[ '${{ matrix.apple_universal }}' == 'ON' ]]; then
+            cmake_args+=( '-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64' )
+          fi
+          cmake "${cmake_args[@]}"
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config Release --parallel 2
+
+      - name: Run tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            xauth \
+            xvfb-run -a ctest --test-dir build --build-config Release --output-on-failure
+          else
+            ctest --test-dir build --build-config Release --output-on-failure
+          fi
+
+      - name: Validate Audio Unit bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          au_path="$(find build -type d -name '*.component' -print -quit)"
+          test -n "$au_path"
+          /usr/bin/plutil -lint "$au_path/Contents/Info.plist"
+          if [[ ! -x /usr/bin/auval ]]; then
+            echo "auval is unavailable on this runner; plist validation passed"
+            exit 0
+          fi
+          host_components="$HOME/Library/Audio/Plug-Ins/Components"
+          mkdir -p "$host_components"
+          staged_path="$host_components/$(basename "$au_path")"
+          if [[ -e "$staged_path" ]]; then
+            echo "refusing to overwrite existing AU component: $staged_path" >&2
+            exit 1
+          fi
+          trap 'rm -rf "$staged_path"' EXIT
+          ditto "$au_path" \
+            "$staged_path"
+          /usr/bin/auval -v aufx RtCd Crrb
+
+      - name: Package artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          ${{ matrix.python }} tools/package_release.py \
+            --build-dir build \
+            --output-dir dist \
+            --platform '${{ matrix.platform }}'
+          test -f "dist/ritual-codec-${{ matrix.platform }}-cli.zip"
+          test -f "dist/ritual-codec-${{ matrix.platform }}-vst3.zip"
+          if [[ '${{ matrix.au }}' == 'ON' ]]; then
+            test -f "dist/ritual-codec-${{ matrix.platform }}-au.zip"
+          fi
+
+      - name: Upload CLI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ritual-codec-${{ matrix.platform }}-cli
+          path: dist/ritual-codec-${{ matrix.platform }}-cli.zip
+          if-no-files-found: error
+
+      - name: Upload VST3 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ritual-codec-${{ matrix.platform }}-vst3
+          path: dist/ritual-codec-${{ matrix.platform }}-vst3.zip
+          if-no-files-found: error
+
+      - name: Upload AU artifact
+        if: matrix.au == 'ON'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ritual-codec-${{ matrix.platform }}-au
+          path: dist/ritual-codec-${{ matrix.platform }}-au.zip
+          if-no-files-found: error

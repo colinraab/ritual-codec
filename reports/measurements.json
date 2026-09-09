@@ -1,0 +1,161 @@
+{
+  "02_subtle.wav": {
+    "parameters": [
+      0.65,
+      0.4,
+      0.35,
+      0.9,
+      0.15,
+      2,
+      1
+    ],
+    "runtime": {
+      "latency_samples": 256,
+      "latency_ms": 5.33333,
+      "seconds": 0.494877,
+      "realtime_factor": 0.0206199,
+      "peak": 0.49557
+    },
+    "metrics": {
+      "rms_dbfs": -18.046741568110434,
+      "sample_peak": 0.49557042121887207,
+      "oversampled_4x_peak": 0.5011159964525491,
+      "rms_error_relative_db": -31.737940042083967,
+      "finite": true,
+      "onset_candidates": 40,
+      "attack_10ms_energy_db_median": -0.0008938717481483218,
+      "attack_10ms_energy_db_p10": -0.027669878129332165,
+      "attack_10ms_normalized_error_median": 6.342507776985478e-05
+    }
+  },
+  "03_damaged_punch.wav": {
+    "parameters": [
+      0.22,
+      0.8,
+      0.78,
+      1,
+      0.65,
+      8,
+      3
+    ],
+    "runtime": {
+      "latency_samples": 256,
+      "latency_ms": 5.33333,
+      "seconds": 0.474097,
+      "realtime_factor": 0.019754,
+      "peak": 0.499829
+    },
+    "metrics": {
+      "rms_dbfs": -18.06782043429389,
+      "sample_peak": 0.4998289942741394,
+      "oversampled_4x_peak": 0.5042803834026267,
+      "rms_error_relative_db": -14.483594515961345,
+      "finite": true,
+      "onset_candidates": 40,
+      "attack_10ms_energy_db_median": -0.02060239152376186,
+      "attack_10ms_energy_db_p10": -0.3437342256281996,
+      "attack_10ms_normalized_error_median": 0.004313885223219126
+    }
+  },
+  "04_damaged_no_punch.wav": {
+    "parameters": [
+      0.22,
+      0.8,
+      0.78,
+      0,
+      0.65,
+      8,
+      3
+    ],
+    "runtime": {
+      "latency_samples": 256,
+      "latency_ms": 5.33333,
+      "seconds": 0.476686,
+      "realtime_factor": 0.0198619,
+      "peak": 0.510088
+    },
+    "metrics": {
+      "rms_dbfs": -18.05972028156393,
+      "sample_peak": 0.5100881457328796,
+      "oversampled_4x_peak": 0.5233867924582957,
+      "rms_error_relative_db": -13.35407300073056,
+      "finite": true,
+      "onset_candidates": 40,
+      "attack_10ms_energy_db_median": -0.13800535121241045,
+      "attack_10ms_energy_db_p10": -0.6651475237459971,
+      "attack_10ms_normalized_error_median": 0.08296568489885682
+    }
+  },
+  "05_extreme_punch.wav": {
+    "parameters": [
+      0.05,
+      1,
+      0.94,
+      1,
+      0.9,
+      16,
+      7
+    ],
+    "runtime": {
+      "latency_samples": 256,
+      "latency_ms": 5.33333,
+      "seconds": 0.431861,
+      "realtime_factor": 0.0179942,
+      "peak": 0.491776
+    },
+    "metrics": {
+      "rms_dbfs": -18.078329416675963,
+      "sample_peak": 0.4917755126953125,
+      "oversampled_4x_peak": 0.497329016310607,
+      "rms_error_relative_db": -11.728505517574085,
+      "finite": true,
+      "onset_candidates": 40,
+      "attack_10ms_energy_db_median": -0.07020849199123355,
+      "attack_10ms_energy_db_p10": -0.5412521716060181,
+      "attack_10ms_normalized_error_median": 0.018138845383072796
+    }
+  },
+  "07_second_damaged_punch.wav": {
+    "parameters": [
+      0.22,
+      0.8,
+      0.78,
+      1,
+      0.65,
+      8,
+      3
+    ],
+    "runtime": {
+      "latency_samples": 256,
+      "latency_ms": 5.33333,
+      "seconds": 0.258622,
+      "realtime_factor": 0.0215518,
+      "peak": 0.463844
+    },
+    "metrics": {
+      "rms_dbfs": -17.989271958389587,
+      "sample_peak": 0.4638438820838928,
+      "oversampled_4x_peak": 0.47464624921785437,
+      "rms_error_relative_db": -17.34329247323293,
+      "finite": true
+    }
+  },
+  "comparison": {
+    "order": [
+      "01_source.wav",
+      "02_subtle.wav",
+      "03_damaged_punch.wav",
+      "04_damaged_no_punch.wav",
+      "05_extreme_punch.wav"
+    ],
+    "starts_seconds": [
+      0,
+      6.5,
+      13,
+      19.5,
+      26
+    ],
+    "segment_seconds": 6,
+    "normalization": "Same -6.02 dB source attenuation; no individual output normalization."
+  }
+}
