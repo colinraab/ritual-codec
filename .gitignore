@@ -1,0 +1,14 @@
+/build*/
+/cmake-build-*/
+/dependencies/
+/dist*/
+/.cache/
+*.user
+*.suo
+.DS_Store
+__pycache__/
+*.pyc
+/audio/*.wav
+/audio/*.mp3
+
+/reports/*.log
