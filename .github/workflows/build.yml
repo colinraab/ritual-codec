@@ -87,7 +87,6 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            xauth \
             xvfb-run -a ctest --test-dir build --build-config Release --output-on-failure
           else
             ctest --test-dir build --build-config Release --output-on-failure
@@ -101,10 +100,11 @@ jobs:
           au_path="$(find build -type d -name '*.component' -print -quit)"
           test -n "$au_path"
           /usr/bin/plutil -lint "$au_path/Contents/Info.plist"
-          if [[ ! -x /usr/bin/auval ]]; then
-            echo "auval is unavailable on this runner; plist validation passed"
-            exit 0
-          fi
+          test -x /usr/bin/auval
+          # Sign the build output too, so the packaged AU matches what we validate.
+          /usr/bin/codesign --force --sign - --timestamp=none "$au_path"
+          /usr/bin/codesign --verify --strict --verbose=2 "$au_path"
+          /usr/bin/plutil -p "$au_path/Contents/Info.plist"
           host_components="$HOME/Library/Audio/Plug-Ins/Components"
           mkdir -p "$host_components"
           staged_path="$host_components/$(basename "$au_path")"
@@ -115,6 +115,24 @@ jobs:
           trap 'rm -rf "$staged_path"' EXIT
           ditto "$au_path" \
             "$staged_path"
+          # A new AU may not be visible to the runner's cached registrar yet.
+          /usr/bin/killall -u "$(id -un)" AudioComponentRegistrar || true
+          registered=false
+          for attempt in {1..15}; do
+            /usr/bin/auval -a > "$RUNNER_TEMP/ritual-au-components.txt"
+            if awk '$1 == "aufx" && $2 == "RtCd" && $3 == "Crrb" { found=1 } END { exit !found }' \
+                "$RUNNER_TEMP/ritual-au-components.txt"; then
+              registered=true
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$registered" != true ]]; then
+            cat "$RUNNER_TEMP/ritual-au-components.txt"
+            echo "Ritual AU was not registered within 30 seconds" >&2
+            exit 1
+          fi
+          # Retry discovery only; any actual validation failure remains fatal.
           /usr/bin/auval -v aufx RtCd Crrb
 
       - name: Package artifacts
