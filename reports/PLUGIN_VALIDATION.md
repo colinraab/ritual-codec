@@ -22,8 +22,7 @@ renders; they are not measurements of native plugin CPU use or DAW behavior.
 
 ## Still to validate
 
-- macOS universal AU/VST3 and Windows VST3 builds and native host loading.
-- Apple auval, configured in the macOS CI job.
+- Native DAW loading on macOS and Windows.
 - DAW automation, session restoration, live performance and listening evaluation.
 - Developer ID signing/notarization and any release publication.
 
@@ -31,3 +30,20 @@ GitHub Actions is configured to produce separate CLI, VST3 and AU downloads.
 Repository access was restored after reconnecting GitHub. Platform CI results
 are tracked in GitHub Actions. These are development artifacts, not a tested
 public release.
+
+## CI log review — run 34404462322
+
+All three platform jobs passed, including the engine/processor suites and
+Apple's AU validation (`AU VALIDATION SUCCEEDED`). The AU download matched
+GitHub's SHA-256 digest and both outer and inner ZIP CRC checks passed. The
+archive used standard Deflate compression and preserved the AU executable bit;
+Archive Utility's reported failure was not reproduced on this Linux reviewer.
+The identical outer/inner filenames are removed by direct artifact upload.
+
+Follow-up changes add native macOS ZIP creation/extraction and signature checks,
+require the JUCE license in plugin packages, update deprecated Actions runtimes,
+and clean up editor conversions, shadowed names and misleading indentation.
+Remaining DSP warnings mainly concern signed indexing into fixed arrays and
+exact float comparisons; these warrant separate cleanup and are not evidence
+of a failing audio test. JUCE's configure-time Make jobserver warning affects
+build parallelism, not the produced plugin.

@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
@@ -135,6 +135,17 @@ jobs:
           # Retry discovery only; any actual validation failure remains fatal.
           /usr/bin/auval -v aufx RtCd Crrb
 
+      - name: Sign completed VST3 bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          vst3_path="$(find build -type d -name '*.vst3' -print -quit)"
+          test -n "$vst3_path"
+          # moduleinfo.json is generated after linking; sign the completed bundle.
+          /usr/bin/codesign --force --sign - --timestamp=none "$vst3_path"
+          /usr/bin/codesign --verify --strict "$vst3_path"
+
       - name: Package artifacts
         shell: bash
         run: |
@@ -150,23 +161,23 @@ jobs:
           fi
 
       - name: Upload CLI artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: ritual-codec-${{ matrix.platform }}-cli
+          archive: false
           path: dist/ritual-codec-${{ matrix.platform }}-cli.zip
           if-no-files-found: error
 
       - name: Upload VST3 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: ritual-codec-${{ matrix.platform }}-vst3
+          archive: false
           path: dist/ritual-codec-${{ matrix.platform }}-vst3.zip
           if-no-files-found: error
 
       - name: Upload AU artifact
         if: matrix.au == 'ON'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: ritual-codec-${{ matrix.platform }}-au
+          archive: false
           path: dist/ritual-codec-${{ matrix.platform }}-au.zip
           if-no-files-found: error

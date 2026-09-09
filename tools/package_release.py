@@ -14,6 +14,8 @@ import subprocess
 import shutil
 import sys
 import zipfile
+import tempfile
+import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -126,12 +128,14 @@ def copy_common_docs(stage: Path, root: Path, build_dir: Path,
     cache = build_dir / "CMakeCache.txt"
     if artifact_kind != "cli" and cache.exists():
         for line in cache.read_text(encoding="utf-8").splitlines():
-            if line.startswith(("RITUAL_JUCE_SOURCE_DIR:PATH=", "juce_SOURCE_DIR:STATIC=")):
+            if line.startswith(("RITUAL_JUCE_SOURCE_DIR:PATH=", "juce_SOURCE_DIR:STATIC=", "JUCE_SOURCE_DIR:STATIC=")):
                 directory = Path(line.split("=", 1)[1])
                 for name in ("LICENSE.md", "JUCE.spdx.json"):
                     upstream = directory / name
                     if upstream.is_file():
                         shutil.copy2(upstream, docs / ("JUCE-" + name))
+    if artifact_kind != "cli" and not (docs / "JUCE-LICENSE.md").is_file():
+        raise RuntimeError("JUCE license was not found in the configured source directory")
     if artifact_kind == "cli":
         resolved_source = "not linked; CLI has no JUCE dependency"
         resolved_version = "not applicable"
@@ -149,6 +153,10 @@ def copy_common_docs(stage: Path, root: Path, build_dir: Path,
 
 def zip_stage(stage: Path, archive: Path) -> None:
     archive.parent.mkdir(parents=True, exist_ok=True)
+    if sys.platform == "darwin":
+        subprocess.run(["/usr/bin/ditto", "-c", "-k", "--sequesterRsrc",
+                        str(stage), str(archive)], check=True)
+        return
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED,
                          compresslevel=9) as output:
         for path in sorted(stage.rglob("*")):
@@ -159,6 +167,31 @@ def zip_stage(stage: Path, archive: Path) -> None:
                 output.writestr(info, os.readlink(path))
             elif path.is_file():
                 output.write(path, path.relative_to(stage))
+
+
+def verify_archive(stage: Path, archive: Path) -> None:
+    with zipfile.ZipFile(archive) as zipped:
+        if zipped.testzip() is not None:
+            raise RuntimeError(f"CRC failure in {archive}")
+    if sys.platform != "darwin":
+        return
+    # Exercise the native extractor and verify the actual deliverable, not just
+    # the pre-packaging bundle. A signature or execute-bit loss must fail CI.
+    with tempfile.TemporaryDirectory(prefix="ritual-extract-") as temporary:
+        extracted = Path(temporary)
+        subprocess.run(["/usr/bin/ditto", "-x", "-k", str(archive), str(extracted)], check=True)
+        for original in stage.rglob("*"):
+            restored = extracted / original.relative_to(stage)
+            if original.is_symlink():
+                if not restored.is_symlink() or os.readlink(original) != os.readlink(restored):
+                    raise RuntimeError(f"Symlink changed: {original}")
+            elif original.is_file():
+                if hashlib.sha256(original.read_bytes()).digest() != hashlib.sha256(restored.read_bytes()).digest():
+                    raise RuntimeError(f"Extracted bytes differ: {original}")
+                if stat.S_IMODE(original.stat().st_mode) != stat.S_IMODE(restored.stat().st_mode):
+                    raise RuntimeError(f"Extracted permissions differ: {original}")
+        for bundle in list(extracted.rglob("*.component")) + list(extracted.rglob("*.vst3")):
+            subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(bundle)], check=True)
 
 
 def make_archive(root: Path, build_dir: Path, output_dir: Path,
@@ -186,6 +219,7 @@ def make_archive(root: Path, build_dir: Path, output_dir: Path,
     if archive.exists():
         archive.unlink()
     zip_stage(stage, archive)
+    verify_archive(stage, archive)
     shutil.rmtree(stage)
     return archive
 

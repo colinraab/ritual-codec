@@ -47,6 +47,8 @@ public:
 
     void prepareToPlay (double sampleRate, int maximumExpectedSamplesPerBlock) override;
     void releaseResources() override;
+    using juce::AudioProcessor::processBlock;
+    using juce::AudioProcessor::processBlockBypassed;
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     void processBlockBypassed (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
@@ -130,4 +132,3 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RitualAudioProcessor)
 };
 
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter();

@@ -12,7 +12,7 @@ class RitualAudioProcessor;
 
 /** The editor for the Ritual Codec effect.
 
-    The controls are attached directly to the processor's APVTS parameters so
+    The controls are attached directly to the ritualProcessor's APVTS parameters so
     automation, undo, and host state restoration remain the source of truth.
 */
 class RitualAudioProcessorEditor final : public juce::AudioProcessorEditor,
@@ -51,7 +51,7 @@ private:
     void refreshPresetIndicator();
     void updateMetersAndStatus();
 
-    RitualAudioProcessor& processor;
+    RitualAudioProcessor& ritualProcessor;
     juce::TooltipWindow tooltips { this, 600 };
     std::unique_ptr<RitualLookAndFeel> lookAndFeel;
     std::unique_ptr<MeterComponent> meter;

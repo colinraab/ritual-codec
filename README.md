@@ -114,7 +114,7 @@ original algorithm and measurement details; those notes describe v0.1.
 ## Status and next steps
 
 Linux VST3 and CLI builds and the engine/processor/editor tests pass locally.
-macOS AU and Windows VST3 builds are configured in CI but have not yet run.
+Linux, Windows and macOS CI builds and tests pass, including Apple AU validation.
 See [validation details](reports/PLUGIN_VALIDATION.md).
 
 The artistic goal is intentional spectral breakup with preserved rhythmic impact.

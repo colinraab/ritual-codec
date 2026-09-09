@@ -103,7 +103,8 @@ public:
     // Abrupt changes are allowed for glitching; automation smoothing is future work.
     void setParams(Params v) {
         for(float x:{v.budget,v.competition,v.memory,v.punch,v.crunch})if(!std::isfinite(x)||x<0||x>1)throw std::invalid_argument("Parameters must be finite and in [0,1]");
-        if(v.clock<1||v.clock>64||v.downsample<1||v.downsample>32)throw std::invalid_argument("Invalid clock/downsample");p=v;
+        if(v.clock<1||v.clock>64||v.downsample<1||v.downsample>32)throw std::invalid_argument("Invalid clock/downsample");
+        p=v;
     }
     void process(const float* in,float* out,int samples) {
         for(int j=0;j<samples;j++,tick++) {
@@ -115,7 +116,8 @@ public:
             for(int c=0;c<channels;c++) {
                 float wet=output[c][at];output[c][at]=0;
                 if(!p.transparent) {
-                    if(tick%p.downsample==0)held[c]=wet;wet=held[c];
+                    if(tick%p.downsample==0)held[c]=wet;
+                    wet=held[c];
                     if(p.crunch>0){float q=std::pow(2.f,15.f-12.f*p.crunch);wet=std::round(wet*q)/q;}
                     float a=p.punch*protect[(tick-N)&(R-1)];
                     wet=(1-a)*wet+a*input[c][(tick-N)&(R-1)];

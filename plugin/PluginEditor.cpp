@@ -235,9 +235,9 @@ public:
         g.setColour (button.findColour (juce::ToggleButton::textColourId)
                          .withAlpha (button.isEnabled() ? 1.0f : 0.45f));
         g.setFont (makeFont (12.0f, juce::Font::bold));
-        g.drawText (button.getButtonText(), switchBounds.getRight() + 9.0f,
+        g.drawText (button.getButtonText(), juce::Rectangle<float> (switchBounds.getRight() + 9.0f,
                     bounds.getY(), juce::jmax (1.0f, bounds.getRight() - switchBounds.getRight() - 9.0f),
-                    bounds.getHeight(), juce::Justification::centredLeft, false);
+                    bounds.getHeight()), juce::Justification::centredLeft, false);
     }
 };
 
@@ -307,11 +307,11 @@ private:
         const auto scaleY = track.getBottom() + 10.0f;
         g.setColour (mutedTextColour.withAlpha (0.6f));
         g.setFont (makeFont (8.0f));
-        g.drawText ("-60", track.getX(), scaleY, 26.0f, 12.0f,
+        g.drawText ("-60", juce::Rectangle<float> (track.getX(), scaleY, 26.0f, 12.0f),
                     juce::Justification::left, false);
-        g.drawText ("-27", track.getCentreX() - 13.0f, scaleY, 26.0f, 12.0f,
+        g.drawText ("-27", juce::Rectangle<float> (track.getCentreX() - 13.0f, scaleY, 26.0f, 12.0f),
                     juce::Justification::centred, false);
-        g.drawText ("+6", track.getRight() - 26.0f, scaleY, 26.0f, 12.0f,
+        g.drawText ("+6", juce::Rectangle<float> (track.getRight() - 26.0f, scaleY, 26.0f, 12.0f),
                     juce::Justification::right, false);
     }
 
@@ -322,7 +322,7 @@ private:
 //==============================================================================
 RitualAudioProcessorEditor::RitualAudioProcessorEditor (RitualAudioProcessor& p)
     : AudioProcessorEditor (&p),
-      processor (p),
+      ritualProcessor (p),
       lookAndFeel (std::make_unique<RitualLookAndFeel>()),
       meter (std::make_unique<MeterComponent>()),
       presets {{
@@ -386,7 +386,7 @@ RitualAudioProcessorEditor::RitualAudioProcessorEditor (RitualAudioProcessor& p)
         "budget", "competition", "memory", "punch", "crunch",
         "clock", "downsample", "mix", "output"
     };
-    const std::array<const char*, 9> tooltips {
+    const std::array<const char*, 9> controlTooltips {
         "Spectral precision budget. Lower values collapse detail into broader, more unstable shapes.",
         "Lets energetic bands win more of the available precision, making dense material fight for focus.",
         "How long each band keeps its spectral shape. High memory creates stale, smeared colour.",
@@ -407,11 +407,11 @@ RitualAudioProcessorEditor::RitualAudioProcessorEditor (RitualAudioProcessor& p)
         controlLabels[i].setFont (makeFont (10.0f, juce::Font::bold));
         controlLabels[i].setColour (juce::Label::textColourId, mutedTextColour);
         controlLabels[i].setJustificationType (juce::Justification::centred);
-        controlLabels[i].setTooltip (tooltips[i]);
+        controlLabels[i].setTooltip (controlTooltips[i]);
         addAndMakeVisible (controlLabels[i]);
 
         configureSlider (*controlSliders[i], parameterIDs[i], minima[i], maxima[i], intervals[i],
-                         tooltips[i]);
+                         controlTooltips[i]);
         addAndMakeVisible (*controlSliders[i]);
     }
 
@@ -419,7 +419,7 @@ RitualAudioProcessorEditor::RitualAudioProcessorEditor (RitualAudioProcessor& p)
     // and must be destroyed before the sliders. The APVTS remains the authoritative state.
     for (size_t i = 0; i < controlSliders.size(); ++i)
         sliderAttachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
-            processor.parameters, parameterIDs[i], *controlSliders[i]);
+            ritualProcessor.parameters, parameterIDs[i], *controlSliders[i]);
 
     configureDisplayFormatting();
     for (auto* slider : controlSliders)
@@ -430,7 +430,7 @@ RitualAudioProcessorEditor::RitualAudioProcessorEditor (RitualAudioProcessor& p)
     bypassButton.setColour (juce::ToggleButton::textColourId, textColour);
     addAndMakeVisible (bypassButton);
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
-        processor.parameters, "bypass", bypassButton);
+        ritualProcessor.parameters, "bypass", bypassButton);
 
     for (size_t i = 0; i < presetButtons.size(); ++i)
     {
@@ -545,7 +545,7 @@ void RitualAudioProcessorEditor::layoutControl (juce::Label& label,
 
 void RitualAudioProcessorEditor::setParameterValue (const char* parameterID, float value)
 {
-    if (auto* parameter = processor.parameters.getParameter (parameterID))
+    if (auto* parameter = ritualProcessor.parameters.getParameter (parameterID))
     {
         parameter->beginChangeGesture();
         parameter->setValueNotifyingHost (parameter->convertTo0to1 (value));
@@ -555,7 +555,7 @@ void RitualAudioProcessorEditor::setParameterValue (const char* parameterID, flo
 
 bool RitualAudioProcessorEditor::parameterMatches (const char* parameterID, float value) const
 {
-    if (auto* parameter = processor.parameters.getParameter (parameterID))
+    if (auto* parameter = ritualProcessor.parameters.getParameter (parameterID))
         return std::abs (parameter->convertFrom0to1 (parameter->getValue()) - value) < 0.0006f;
 
     return false;
@@ -608,14 +608,14 @@ void RitualAudioProcessorEditor::updateMetersAndStatus()
 {
     if (meter != nullptr)
     {
-        meter->setLevels (processor.inputPeak.load (std::memory_order_relaxed),
-                          processor.outputPeak.load (std::memory_order_relaxed));
+        meter->setLevels (ritualProcessor.inputPeak.load (std::memory_order_relaxed),
+                          ritualProcessor.outputPeak.load (std::memory_order_relaxed));
     }
 
-    const bool bypassed = processor.parameters.getRawParameterValue ("bypass")->load() >= 0.5f;
+    const bool bypassed = ritualProcessor.parameters.getRawParameterValue ("bypass")->load() >= 0.5f;
     statusLabel.setText (bypassed ? "BYPASSED / LATENCY ALIGNED" : "LIVE / SPECTRAL DAMAGE",
                          juce::dontSendNotification);
-    const auto sampleRate = processor.getSampleRate();
+    const auto sampleRate = ritualProcessor.getSampleRate();
     juce::String latencyText ("FIXED LATENCY  /  256 samples");
     if (std::isfinite (sampleRate) && sampleRate > 0.0)
         latencyText << "  /  " << juce::String (256000.0 / sampleRate, 2) << " ms";

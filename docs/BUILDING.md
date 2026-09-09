@@ -129,5 +129,25 @@ request and push, and can also be started with `workflow_dispatch`. Its matrix
 covers Windows VST3 plus CLI, macOS universal VST3/AU plus CLI, and Linux VST3
 plus CLI. Each job uploads separate CLI, VST3, and (on macOS) AU ZIP artifacts.
 No job publishes a release. The macOS job validates the AU bundle with
-`plutil` and, when `auval` is available, stages it at the host's expected
+`plutil` and stages it at the host's expected
 `~/Library/Audio/Plug-Ins/Components` path before running `auval`.
+
+### Download and extraction
+
+Artifacts are uploaded as the original ZIP file (`archive: false`), without
+GitHub adding another ZIP with the same name. Unzip once to reach `AU/`,
+`VST3/`, or `bin/`, plus the licenses and matching project source.
+
+macOS packages use Apple's `ditto` ZIP writer. Packaging extracts them again
+with `ditto`, checks file bytes, permissions and symlinks, and verifies plugin
+signatures. The CI bundles are ad-hoc signed, not Developer ID signed or notarized.
+
+Older runs used nested ZIPs. If Archive Utility cannot expand one, extract the
+inner ZIP into a fresh folder using Terminal (adjust the downloaded filename):
+
+```sh
+ditto -x -k "$HOME/Downloads/ritual-codec-macos-universal-au 2.zip" "$HOME/Downloads/Ritual-AU"
+```
+
+Copy `AU/Ritual Codec.component` into
+`~/Library/Audio/Plug-Ins/Components`, then restart your host to rescan.
