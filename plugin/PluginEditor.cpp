@@ -69,6 +69,30 @@ std::uint32_t textureHash (int x, int y) noexcept
     return value;
 }
 
+// Fixed, subpixel variations imitate uneven ink without animated noise.
+void drawInkBorder (juce::Graphics& g, juce::Rectangle<float> box, float width)
+{
+    const juce::Point<float> corners[] = { box.getTopLeft(), box.getTopRight(),
+                                         box.getBottomRight(), box.getBottomLeft() };
+    for (int side = 0; side < 4; ++side)
+    {
+        const auto from = corners[side];
+        const auto delta = corners[(side + 1) % 4] - from;
+        const int count = juce::jmax (1, (int) (delta.getDistanceFromOrigin() / 4.0f));
+        for (int n = 0; n < count; ++n)
+        {
+            const auto hash = textureHash (n + (int) box.getX(), side + (int) box.getY());
+            if ((hash & 63u) == 0u) continue;
+            const float offset = ((float) ((hash >> 8) & 15u) / 15.0f - 0.5f) * 0.65f;
+            const auto shift = side % 2 == 0 ? juce::Point<float> (0.0f, offset)
+                                            : juce::Point<float> (offset, 0.0f);
+            const auto a = from + delta * ((float) n / (float) count) + shift;
+            const auto b = from + delta * ((float) (n + 1) / (float) count) + shift;
+            g.drawLine ({a, b}, width * (0.65f + (float) (hash & 15u) / 20.0f));
+        }
+    }
+}
+
 void drawCircuitTrace (juce::Graphics& g, juce::Rectangle<float> area,
                        int lane, bool reverse = false)
 {
@@ -177,6 +201,15 @@ public:
         auto* label = juce::LookAndFeel_V4::createSliderTextBox(slider);
         label->setFont(makeMonoFont(18.0f));
         return label;
+    }
+    void drawLabel (juce::Graphics& g, juce::Label& label) override
+    {
+        juce::LookAndFeel_V4::drawLabel (g, label);
+        if (dynamic_cast<juce::Slider*> (label.getParentComponent()) != nullptr)
+        {
+            g.setColour (label.findColour (juce::Label::outlineColourId));
+            drawInkBorder (g, label.getLocalBounds().toFloat().reduced (0.5f), 0.8f);
+        }
     }
     juce::Font getLabelFont(juce::Label& label) override {
         return dynamic_cast<juce::Slider*>(label.getParentComponent()) != nullptr
@@ -364,7 +397,7 @@ public:
         drawHalftone (g, bounds.reduced (1.0f), false);
         g.setColour ((highlighted || down ? accentColour : lineColour)
                          .withAlpha ((highlighted || down ? 0.88f : 0.68f) * alpha));
-        g.drawRect (bounds, 1.0f);
+        drawInkBorder (g, bounds, 1.0f);
     }
 
     void drawToggleButton (juce::Graphics& g, juce::ToggleButton& button,
@@ -390,7 +423,7 @@ public:
         g.fillRect (switchBounds);
         g.setColour ((highlighted || on ? accentColour : lineColour)
                          .withAlpha ((highlighted || on ? 0.88f : 0.68f) * alpha));
-        g.drawRect (switchBounds, 1.0f);
+        drawInkBorder (g, switchBounds, 1.0f);
         if (on)
         {
             g.setColour (copperBrightColour.withAlpha (alpha));
@@ -494,7 +527,7 @@ private:
                                   : trackColour.withAlpha (0.88f));
             g.fillRect (segment);
             g.setColour (lineColour.withAlpha (0.75f));
-            g.drawRect (segment, 0.6f);
+            drawInkBorder (g, segment, 0.6f);
             if (isActive && i >= segments - 4)
             {
                 g.setColour (accentBrightColour.withAlpha (0.72f));
@@ -874,9 +907,9 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
 
     const auto frame = whole.toFloat().reduced (10.0f);
     g.setColour (lineColour.withAlpha (0.78f));
-    g.drawRect (frame, 1.0f);
+    drawInkBorder (g, frame, 1.0f);
     g.setColour (accentColour.withAlpha (0.38f));
-    g.drawRect (frame.reduced (4.0f), 0.7f);
+    drawInkBorder (g, frame.reduced (4.0f), 0.7f);
     g.setColour (accentBrightColour.withAlpha (0.68f));
     g.fillRect (frame.getX() + 16.0f, frame.getY() - 1.0f, 18.0f, 2.0f);
     g.fillRect (frame.getRight() - 34.0f, frame.getBottom() - 1.0f, 18.0f, 2.0f);
@@ -895,7 +928,7 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour (panelColour.withAlpha (0.82f));
     g.fillRect (header);
     g.setColour (lineColour.withAlpha (0.84f));
-    g.drawRect (header.reduced (0.5f), 1.0f);
+    drawInkBorder (g, header.reduced (0.5f), 1.0f);
     // Full-width routing, with staggered branches and distinct component symbols.
     g.saveState();
     g.excludeClipRegion (titleLabel.getBounds().expanded (4, 0));
@@ -949,8 +982,8 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillRect (signal);
     g.fillRect (main);
     g.setColour (lineColour.withAlpha (0.5f));
-    g.drawRect (signal.reduced (0.5f), 1.0f);
-    g.drawRect (main.reduced (0.5f), 1.0f);
+    drawInkBorder (g, signal.reduced (0.5f), 1.0f);
+    drawInkBorder (g, main.reduced (0.5f), 1.0f);
     
 
 
@@ -981,14 +1014,24 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
 void RitualAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
 {
     const auto whole = getLocalBounds();
-    // A fixed ink-grain overlay covers panels, controls and their lettering.
     if (! paperTexture.isNull())
     {
+        const auto paintGrain = [&] (float opacity)
+        {
+            g.setOpacity (opacity);
+            for (int y = 0; y < whole.getHeight(); y += paperTexture.getHeight())
+                for (int x = 0; x < whole.getWidth(); x += paperTexture.getWidth())
+                    g.drawImageAt (paperTexture, x, y);
+        };
         g.saveState();
-        g.setOpacity (0.85f);
-        for (int y = 0; y < whole.getHeight(); y += paperTexture.getHeight())
-            for (int x = 0; x < whole.getWidth(); x += paperTexture.getWidth())
-                g.drawImageAt (paperTexture, x, y);
+        paintGrain (0.14f);
+        // Leave stronger paper texture only between the component rectangles.
+        for (int i = 0; i < getNumChildComponents(); ++i)
+        {
+            const auto* child = getChildComponent (i);
+            if (child->isVisible()) g.excludeClipRegion (child->getBounds().expanded (3));
+        }
+        paintGrain (0.48f);
         g.restoreState();
     }
 
