@@ -151,3 +151,46 @@ ditto -x -k "$HOME/Downloads/ritual-codec-macos-universal-au 2.zip" "$HOME/Downl
 
 Copy `AU/Ritual Codec.component` into
 `~/Library/Audio/Plug-Ins/Components`, then restart your host to rescan.
+
+
+## Local AU iteration without Actions minutes
+
+Actions runs only via **Run workflow**, with a platform selector. Pushes and pull
+requests do not start builds. Manual hosted runs still consume minutes on a private
+repository; leave them unused when conserving the allowance.
+
+On your Mac, install Apple's command-line developer tools (`xcode-select --install`)
+and CMake/Ninja (`brew install cmake ninja`, assuming Homebrew is installed).
+Clone this repository, or pull updates in your existing checkout, then run:
+
+```sh
+cmake -S . -B build/local-au -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DRITUAL_BUILD_AU=ON -DRITUAL_BUILD_VST3=OFF \
+  -DRITUAL_BUILD_CLI=OFF -DRITUAL_BUILD_TESTS=ON
+cmake --build build/local-au --parallel 4
+ctest --test-dir build/local-au --output-on-failure
+```
+
+The first configure fetches the pinned JUCE source. This builds for the native
+architecture of your terminal; on Apple Silicon use a native terminal rather than
+Rosetta. Subsequent builds reuse compiled files. No Apple Developer subscription
+is needed for a local ad-hoc signed build.
+
+Quit Ableton before installing. The following replaces the user-level Ritual Codec
+installation with this build:
+
+```sh
+ritual_au="build/local-au/RitualCodec_artefacts/Release/AU/Ritual Codec.component"
+codesign --force --sign - --timestamp=none "$ritual_au"
+codesign --verify --strict "$ritual_au"
+mkdir -p "$HOME/Library/Audio/Plug-Ins/Components"
+ditto "$ritual_au" "$HOME/Library/Audio/Plug-Ins/Components/Ritual Codec.component"
+killall -u "$(id -un)" AudioComponentRegistrar || true
+auval -v aufx RtCd Crrb
+```
+
+If discovery is not immediate, wait a few seconds and rerun `auval`. Open Ableton,
+enable Audio Units in its Plug-Ins settings, and rescan if needed. For later
+iterations, `git pull`, rerun the build and tests, then repeat the installation
+commands with Ableton closed. Reconfigure when build options change.
