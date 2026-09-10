@@ -37,6 +37,9 @@ platform details, artifact paths, and CI download steps. Installing the CLI and
 plugin are independent; plugins include the engine internally. No automatic
 copy into system plugin directories is performed during ordinary builds.
 
+The sidebar overlays the original and processed spectra to show spectral change.
+Numeric controls use bundled IBM Plex Mono.
+
 ## Controls
 
 | Control | Behavior |

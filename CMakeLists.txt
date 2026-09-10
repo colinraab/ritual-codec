@@ -127,6 +127,8 @@ if(_ritual_plugin_formats)
         AU_MAIN_TYPE kAudioUnitType_Effect
         FORMATS ${_ritual_plugin_formats})
 
+    juce_add_binary_data(RitualFonts SOURCES assets/fonts/IBMPlexMono-Regular.ttf)
+
     target_sources(RitualCodec PRIVATE
         plugin/PluginProcessor.cpp
         plugin/PluginEditor.cpp)
@@ -139,6 +141,7 @@ if(_ritual_plugin_formats)
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0)
     target_link_libraries(RitualCodec PRIVATE
+        RitualFonts
         juce::juce_audio_utils
         juce::juce_dsp
         juce::juce_recommended_config_flags
@@ -187,7 +190,8 @@ if(RITUAL_BUILD_TESTS)
             JUCE_USE_CURL=0
             JUCE_VST3_CAN_REPLACE_VST2=0)
         target_link_libraries(ritual-codec-plugin-test PRIVATE
-            juce::juce_audio_utils
+            RitualFonts
+        juce::juce_audio_utils
             juce::juce_dsp
             juce::juce_recommended_config_flags
             juce::juce_recommended_warning_flags)

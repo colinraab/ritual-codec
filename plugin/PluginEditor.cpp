@@ -3,6 +3,8 @@
 #include "PluginEditor.h"
 
 #include "PluginProcessor.h"
+#include "SpectrumDisplay.h"
+#include "BinaryData.h"
 
 #include <algorithm>
 #include <cmath>
@@ -35,8 +37,10 @@ juce::Font makeFont (float height, int style = juce::Font::plain)
 
 juce::Font makeMonoFont (float height, int style = juce::Font::plain)
 {
-    return juce::Font (juce::FontOptions {
-        juce::Font::getDefaultMonospacedFontName(), height, style });
+    juce::ignoreUnused(style);
+    static const auto typeface = juce::Typeface::createSystemTypefaceFor(
+        BinaryData::IBMPlexMonoRegular_ttf, BinaryData::IBMPlexMonoRegular_ttfSize);
+    return juce::Font(juce::FontOptions(typeface).withHeight(height));
 }
 
 float peakToDecibels (float peak)
@@ -160,6 +164,16 @@ public:
         setColour (juce::TextButton::textColourOffId, mutedTextColour);
         setColour (juce::TextButton::textColourOnId, textColour);
         setColour (juce::ToggleButton::textColourId, textColour);
+    }
+
+    juce::Label* createSliderTextBox(juce::Slider& slider) override {
+        auto* label = juce::LookAndFeel_V4::createSliderTextBox(slider);
+        label->setFont(makeMonoFont(18.0f));
+        return label;
+    }
+    juce::Font getLabelFont(juce::Label& label) override {
+        return dynamic_cast<juce::Slider*>(label.getParentComponent()) != nullptr
+            ? makeMonoFont(18.0f) : label.getFont();
     }
 
     int getSliderThumbRadius (juce::Slider&) override
@@ -401,6 +415,12 @@ class RitualAudioProcessorEditor::MeterComponent final : public juce::Component,
                                                          public juce::SettableTooltipClient
 {
 public:
+    explicit MeterComponent(SpectrumTap& tap) : spectrum(tap,makeMonoFont(12.0f)) { addAndMakeVisible(spectrum); }
+    void resized() override {
+        const int top=juce::roundToInt(static_cast<float>(getHeight())*0.57f);
+        spectrum.setBounds(12,top,getWidth()-24,getHeight()-top-12);
+    }
+
     void setLevels (float inputPeak, float outputPeak)
     {
         const auto inputDb = peakToDecibels (inputPeak);
@@ -430,27 +450,18 @@ public:
         g.fillEllipse (juce::Rectangle<float> (4.0f, 4.0f).withCentre (titleRule.getCentre()));
         area.removeFromTop (12.0f);
 
-        const auto meterHeight = juce::jlimit (70.0f, 96.0f, area.getHeight() * 0.23f);
+        const auto meterHeight = 64.0f;
         drawMeter (g, area.removeFromTop (meterHeight), "INPUT", displayedInput, accentColour);
-        area.removeFromTop (16.0f);
+        area.removeFromTop (8.0f);
         drawMeter (g, area.removeFromTop (meterHeight), "OUTPUT", displayedOutput, copperColour);
         area.removeFromTop (14.0f);
 
-        const auto noteArea = area.removeFromTop (34.0f);
-        g.setColour (mutedTextColour.withAlpha (0.82f));
-        g.setFont (makeFont (10.0f, juce::Font::bold));
-        g.drawFittedText ("PEAK / POST EFFECT", noteArea.toNearestInt(),
-                          juce::Justification::left, 1);
 
-        if (area.getHeight() > 25.0f)
-        {
-            const auto seal = juce::Point<float> (area.getCentreX(), area.getBottom() - 15.0f);
-            drawRegistrationMark (g, seal, 10.0f, lineColour, 0.72f);
-            drawStar (g, seal, 8.0f, accentColour, 0.6f);
-        }
     }
 
 private:
+    SpectrumDisplay spectrum;
+
     static void drawMeter (juce::Graphics& g, juce::Rectangle<float> area,
                            const juce::String& name, float decibels,
                            juce::Colour fillColour)
@@ -458,7 +469,7 @@ private:
         g.setColour (mutedTextColour);
         g.setFont (makeFont (11.0f, juce::Font::bold));
         g.drawText (name, area.removeFromTop (17.0f), juce::Justification::left, false);
-        g.setFont (makeMonoFont (10.0f));
+        g.setFont (makeMonoFont (12.0f));
         g.drawText (juce::String (decibels, 1) + " dB", area.removeFromTop (17.0f),
                     juce::Justification::right, false);
 
@@ -492,7 +503,7 @@ private:
 
         const auto scaleY = track.getBottom() + 9.0f;
         g.setColour (mutedTextColour.withAlpha (0.68f));
-        g.setFont (makeMonoFont (8.0f));
+        g.setFont (makeMonoFont (10.0f));
         g.drawText ("-60", juce::Rectangle<float> (track.getX(), scaleY, 26.0f, 12.0f),
                     juce::Justification::left, false);
         g.drawText ("-27", juce::Rectangle<float> (track.getCentreX() - 13.0f, scaleY, 26.0f, 12.0f),
@@ -510,7 +521,7 @@ RitualAudioProcessorEditor::RitualAudioProcessorEditor (RitualAudioProcessor& p)
     : AudioProcessorEditor (&p),
       ritualProcessor (p),
       lookAndFeel (std::make_unique<RitualLookAndFeel>()),
-      meter (std::make_unique<MeterComponent>()),
+      meter (std::make_unique<MeterComponent>(p.spectrumTap)),
       presets {{
           { "SUBTLE",    { 0.65f, 0.40f, 0.35f, 0.90f, 0.15f,  2.0f, 1.0f, 1.0f, 0.0f, 0.0f } },
           { "DAMAGED",  { 0.22f, 0.80f, 0.78f, 1.00f, 0.65f,  8.0f, 3.0f, 1.0f, 0.0f, 0.0f } },
@@ -919,8 +930,7 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawRect (signal.reduced (5.0f), 0.7f);
     g.drawRect (main.reduced (5.0f), 0.7f);
 
-    for (int i = 0; i < 3; ++i)
-        drawCircuitTrace (g, signal.withTrimmedTop (signal.getHeight() * 0.68f).withTrimmedBottom (38.0f), i, i % 2 == 0);
+
 
     auto sectionBody = main;
     sectionBody.removeFromTop (26);
@@ -941,8 +951,7 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
                            accentColour, 0.78f);
     drawRegistrationMark (g, { main.getRight() - 10.0f, main.getBottom() - 26.0f }, 5.0f,
                            accentColour, 0.78f);
-    drawStar (g, { signal.getCentreX(), signal.getBottom() - 29.0f }, 13.0f,
-              accentBrightColour, 0.6f);
+
 
     // Footer rule and tiny calibration traces.
     g.setColour (lineColour.withAlpha (0.78f));

@@ -123,6 +123,7 @@ void RitualAudioProcessor::prepareToPlay (double sampleRate, int maximumExpected
     for (auto& channel : dryDelay)
         channel.fill (0.0f);
 
+    spectrumTap.prepare (getSampleRate());
     inputPeak.store (0.0f, std::memory_order_relaxed);
     outputPeak.store (0.0f, std::memory_order_relaxed);
 
@@ -380,6 +381,11 @@ void RitualAudioProcessor::processAudio (juce::AudioBuffer<float>& buffer,
             blockOutputPeak = std::max (blockOutputPeak, std::abs (value));
         }
 
+        if (channelsToWrite > 0) {
+            const auto right = channelsToWrite > 1 ? 1u : 0u;
+            spectrumTap.push(drySample[0], drySample[right],
+                             channelData[0][frame], channelData[right][frame]);
+        }
         ++samplePosition;
     }
 

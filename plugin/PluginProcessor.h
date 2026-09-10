@@ -5,6 +5,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include "../src/bitfamine.hpp"
+#include "SpectrumTap.h"
 
 #include <array>
 #include <atomic>
@@ -74,6 +75,8 @@ public:
 
     // Read by the editor without taking a lock.  Values are finite peak levels
     // from the most recently processed block.
+    SpectrumTap spectrumTap;
+
     std::atomic<float> inputPeak { 0.0f };
     std::atomic<float> outputPeak { 0.0f };
 

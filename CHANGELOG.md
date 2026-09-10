@@ -2,6 +2,9 @@
 
 ## 0.2.0 — development snapshot
 
+- Bundle IBM Plex Mono for numeric readouts and add an aligned stereo-energy
+  input/output spectrum display with UI-thread FFT processing.
+
 - Redesign the editor with purple ink, serif typography, halftone dials, circuit
   ornaments and segmented meters; preserve parameter IDs and preset values.
 

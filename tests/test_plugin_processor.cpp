@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (c) 2026 Colin Raab and contributors.
 #include "../plugin/PluginProcessor.h"
+#include "../plugin/SpectrumDisplay.h"
+#include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_graphics/juce_graphics.h>
 #include <array>
@@ -102,6 +104,39 @@ void tests() {
     signal[0]=std::numeric_limits<float>::quiet_NaN();signal[1]=std::numeric_limits<float>::infinity();
     for(float v:render(finite,signal,2,31))require(std::isfinite(v),"Nonfinite output");
     // Editor construction/resizing catches re-entrant callbacks during setup.
+    {
+        auto tap=std::make_unique<SpectrumTap>();
+        SpectrumTap::Frame captured;
+        tap->prepare(96000.0);
+        for(int i=0;i<SpectrumTap::size*10;++i)tap->push(.25f,-.25f,.125f,-.125f);
+        require(tap->readLatest(captured),"Spectrum queue did not publish");
+        require(captured.sampleRate==96000.0,"Spectrum rate lost");
+        for(int i=0;i<SpectrumTap::size;++i) {
+            const auto n=static_cast<size_t>(i);
+            require(captured.samples[0][n]==.25f && captured.samples[1][n]==-.25f,"Stereo input capture changed");
+            require(captured.samples[2][n]==.125f && captured.samples[3][n]==-.125f,"Stereo output capture changed");
+        }
+        require(!tap->readLatest(captured),"Spectrum queue failed to drain");
+        tap->push(1,1,1,1);tap->prepare(48000);
+        for(int i=0;i<SpectrumTap::size;++i)tap->push(0,0,0,0);
+        require(tap->readLatest(captured) && captured.samples[0][0]==0,"Spectrum partial frame survived prepare");
+    }
+    {
+        auto capturedProcessor=std::make_unique<RitualAudioProcessor>();
+        set(*capturedProcessor,"mix",0.0f);prepare(*capturedProcessor,2);
+        std::vector<float> signal(4096);
+        for(size_t i=0;i<signal.size()/2;++i) {
+            signal[i*2]=.2f*std::sin(static_cast<float>(i)*.07f);
+            signal[i*2+1]=-signal[i*2];
+        }
+        render(*capturedProcessor,signal,2,127);
+        SpectrumTap::Frame frame;
+        require(capturedProcessor->spectrumTap.readLatest(frame),"Processor spectrum tap is disconnected");
+        for(size_t i=0;i<SpectrumTap::size;++i) {
+            require(frame.samples[0][i]==frame.samples[2][i] && frame.samples[1][i]==frame.samples[3][i],"Spectrum input/output are not latency aligned");
+            require(frame.samples[0][i]==-frame.samples[1][i],"Spectrum tap lost opposite-phase stereo");
+        }
+    }
     RitualAudioProcessor ui;prepare(ui,2);
     std::unique_ptr<juce::AudioProcessorEditor> editor(ui.createEditor());
     require(editor!=nullptr,"Editor factory returned null");
@@ -150,6 +185,23 @@ int main(int argc,char** argv) try {
         std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
         require(editor!=nullptr,"Missing editor");
         if (argc >= 5) editor->setSize(std::stoi(argv[3]), std::stoi(argv[4]));
+        if (argc >= 6) {
+            juce::AudioFormatManager formats;formats.registerBasicFormats();
+            std::unique_ptr<juce::AudioFormatReader> reader(formats.createReaderFor(juce::File(argv[5])));
+            require(reader!=nullptr,"Cannot read preview audio");
+            prepare(p,2,reader->sampleRate);
+            for(auto* child:editor->getChildren())if(auto* button=dynamic_cast<juce::TextButton*>(child))
+                if(button->getButtonText()=="DAMAGED")button->onClick();
+            juce::AudioBuffer<float> audio(2,1024);juce::MidiBuffer midi;
+            const auto length=std::min(reader->lengthInSamples,static_cast<juce::int64>(reader->sampleRate*3));
+            for(juce::int64 offset=0;offset+1024<=length;offset+=1024) {
+                reader->read(&audio,0,1024,offset,true,true);p.processBlock(audio,midi);
+                for(auto* child:editor->getChildren())for(auto* sub:child->getChildren())
+                    if(auto* spectrum=dynamic_cast<SpectrumDisplay*>(sub))spectrum->refresh();
+            }
+        }
+        juce::Thread::sleep(40);
+        juce::Timer::callPendingTimersSynchronously();
         const auto image=editor->createComponentSnapshot(editor->getLocalBounds());
         juce::File file=juce::File::getCurrentWorkingDirectory().getChildFile(juce::String(argv[2]));
         auto stream=file.createOutputStream();require(stream!=nullptr,"Cannot write screenshot");
