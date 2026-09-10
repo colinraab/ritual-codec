@@ -43,3 +43,13 @@ A music-driven preview can be rendered with:
 ```sh
 ./build/ritual-codec-plugin-test --screenshot /absolute/path/preview.png 1000 650 /absolute/path/input.wav
 ```
+
+## Display lettering and panel clearance
+
+Display labels now use embedded Cormorant Garamond, retaining IBM Plex Mono
+for numbers. Cormorant keeps the printed, literary character of the reference;
+Cinzel would emphasize engraved capitals, while Space Grotesk would move the
+interface toward a technical instrument. Cormorant is the current choice.
+Section headings have taller dedicated bands and inset text. Control rows have
+10 px vertical clearance and additional horizontal panel padding so value boxes
+remain clear of the surrounding rules, including at the minimum window size.

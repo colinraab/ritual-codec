@@ -93,6 +93,7 @@ def copy_common_docs(stage: Path, root: Path, build_dir: Path,
         shutil.copy2(source, destination)
 
     shutil.copy2(root / "assets/fonts/OFL.txt", docs / "IBM-Plex-Mono-OFL.txt")
+    shutil.copy2(root / "assets/fonts/CormorantGaramond-OFL.txt", docs / "CormorantGaramond-OFL.txt")
 
     readme = root / "README.md"
     if readme.is_file():

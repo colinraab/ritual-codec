@@ -127,7 +127,7 @@ if(_ritual_plugin_formats)
         AU_MAIN_TYPE kAudioUnitType_Effect
         FORMATS ${_ritual_plugin_formats})
 
-    juce_add_binary_data(RitualFonts SOURCES assets/fonts/IBMPlexMono-Regular.ttf)
+    juce_add_binary_data(RitualFonts SOURCES assets/fonts/IBMPlexMono-Regular.ttf assets/fonts/CormorantGaramond.ttf)
 
     target_sources(RitualCodec PRIVATE
         plugin/PluginProcessor.cpp

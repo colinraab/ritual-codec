@@ -31,8 +31,12 @@ const juce::Colour shadowColour        (0xff09060b);
 
 juce::Font makeFont (float height, int style = juce::Font::plain)
 {
-    return juce::Font (juce::FontOptions {
-        juce::Font::getDefaultSerifFontName(), height, style });
+    if (height < 16.0f)
+        return juce::Font (juce::FontOptions {
+            juce::Font::getDefaultSerifFontName(), height, style });
+    static const auto typeface = juce::Typeface::createSystemTypefaceFor (
+        BinaryData::CormorantGaramond_ttf, BinaryData::CormorantGaramond_ttfSize);
+    return juce::Font (juce::FontOptions (typeface).withHeight (height * 1.12f));
 }
 
 juce::Font makeMonoFont (float height, int style = juce::Font::plain)
@@ -763,7 +767,7 @@ void RitualAudioProcessorEditor::layoutControl (juce::Label& label,
                                                 juce::Slider& slider,
                                                 juce::Rectangle<int> area)
 {
-    area = area.reduced (5, 0);
+    area = area.reduced (7, 10);
     label.setBounds (area.removeFromTop (21));
     slider.setBounds (area.reduced (2, 0));
 }
@@ -933,10 +937,10 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
 
 
     auto sectionBody = main;
-    sectionBody.removeFromTop (26);
-    const auto rowOneHeight = (sectionBody.getHeight() - 25) / 2;
+    sectionBody.removeFromTop (36);
+    const auto rowOneHeight = (sectionBody.getHeight() - 34) / 2;
     sectionBody.removeFromTop (rowOneHeight);
-    const auto timingBand = sectionBody.removeFromTop (25).toFloat();
+    const auto timingBand = sectionBody.removeFromTop (34).toFloat();
     g.setColour (lineColour.withAlpha (0.72f));
     g.drawLine (main.getX() + 8.0f, timingBand.getY(), main.getRight() - 8.0f,
                 timingBand.getY(), 0.8f);
@@ -1006,10 +1010,12 @@ void RitualAudioProcessorEditor::resized()
     meter->setBounds (meterArea);
     body.removeFromLeft (12);
 
-    spectralHeading.setBounds (body.removeFromTop (26).reduced (13, 2));
-    auto rowOne = body.removeFromTop ((body.getHeight() - 25) / 2);
-    timingHeading.setBounds (body.removeFromTop (25).reduced (13, 2));
+    spectralHeading.setBounds (body.removeFromTop (36).reduced (18, 8));
+    auto rowOne = body.removeFromTop ((body.getHeight() - 34) / 2);
+    timingHeading.setBounds (body.removeFromTop (34).reduced (18, 7));
     auto rowTwo = body;
+    rowOne.reduce (7, 0);
+    rowTwo.reduce (7, 0);
 
     const auto rowOneWidth = rowOne.getWidth() / 5;
     for (size_t i = 0; i < 5; ++i)
