@@ -111,6 +111,30 @@ void drawCircuitTrace (juce::Graphics& g, juce::Rectangle<float> area,
 
 }
 
+void drawHalftone (juce::Graphics& g, juce::Rectangle<float> bounds, bool circular)
+{
+    g.saveState();
+    if (circular)
+    {
+        juce::Path clip;
+        clip.addEllipse (bounds);
+        g.reduceClipRegion (clip);
+    }
+    else
+        g.reduceClipRegion (bounds.toNearestInt());
+    for (float y = bounds.getY(); y < bounds.getBottom(); y += 3.0f)
+        for (float x = bounds.getX(); x < bounds.getRight(); x += 3.0f)
+        {
+            const float shade = juce::jlimit (0.0f, 1.0f,
+                1.0f - ((x - bounds.getX()) + (y - bounds.getY()))
+                           / juce::jmax (1.0f, bounds.getWidth() + bounds.getHeight()));
+            g.setColour (accentBrightColour.withAlpha (0.08f + shade * 0.24f));
+            const float dot = 0.7f + shade * 0.8f;
+            g.fillRect (x, y, dot, dot);
+        }
+    g.restoreState();
+}
+
 void drawRegistrationMark (juce::Graphics& g, juce::Point<float> centre,
                            float radius, juce::Colour colour, float alpha = 0.55f)
 {
@@ -195,6 +219,7 @@ public:
         g.fillEllipse (dial.expanded (2.0f));
         g.setColour (panelRaisedColour.withAlpha (alpha));
         g.fillEllipse (dial);
+        drawHalftone (g, dial.reduced (2.0f), true);
         g.setColour (lineColour.withAlpha (0.82f * alpha));
         g.drawEllipse (dial.reduced (1.0f), 1.0f);
 
@@ -304,6 +329,7 @@ public:
             g.fillRoundedRectangle (value, juce::jmin (value.getWidth(), value.getHeight()) * 0.5f);
         }
 
+        drawHalftone (g, track, false);
         auto thumbBounds = horizontal
                                ? juce::Rectangle<float> (9.0f, 24.0f).withCentre (thumb)
                                : juce::Rectangle<float> (24.0f, 9.0f).withCentre (thumb);
@@ -335,6 +361,7 @@ public:
         g.fillRect (bounds.translated (0.0f, 1.0f));
         g.setColour (fill.withMultipliedAlpha (alpha));
         g.fillRect (bounds);
+        drawHalftone (g, bounds.reduced (1.0f), false);
         g.setColour ((highlighted || down ? accentColour : lineColour)
                          .withAlpha ((highlighted || down ? 0.88f : 0.68f) * alpha));
         g.drawRect (bounds, 1.0f);
@@ -642,14 +669,14 @@ void RitualAudioProcessorEditor::buildPaperTexture()
         {
             const auto hash = textureHash (x, y);
             const auto grain = (hash & 0xffu);
-            if (grain < 35u)
+            if (grain < 95u)
             {
-                const auto alpha = 0.04f + (float) (hash & 0x1fu) / 350.0f;
+                const auto alpha = 0.07f + (float) ((hash >> 8) & 0x1fu) / 180.0f;
                 paperTexture.setPixelAt (x, y, accentBrightColour.withAlpha (alpha));
             }
-            else if ((hash & 0x3ffu) < 4u)
+            else if (grain > 185u)
             {
-                paperTexture.setPixelAt (x, y, shadowColour.withAlpha (0.06f));
+                paperTexture.setPixelAt (x, y, shadowColour.withAlpha (0.23f));
             }
         }
 
@@ -949,12 +976,16 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour (lineColour.withAlpha (0.78f));
     g.drawLine (footer.getX(), footer.getY(), footer.getRight(), footer.getY(), 0.8f);
 
-    // The texture is a cached image generated once in the constructor.
+}
+
+void RitualAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
+{
+    const auto whole = getLocalBounds();
+    // A fixed ink-grain overlay covers panels, controls and their lettering.
     if (! paperTexture.isNull())
     {
         g.saveState();
-        g.excludeClipRegion (content);
-        g.setOpacity (0.6f);
+        g.setOpacity (0.85f);
         for (int y = 0; y < whole.getHeight(); y += paperTexture.getHeight())
             for (int x = 0; x < whole.getWidth(); x += paperTexture.getWidth())
                 g.drawImageAt (paperTexture, x, y);
