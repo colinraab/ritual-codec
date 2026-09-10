@@ -50,11 +50,13 @@ private:
     bool presetMatches (const Preset&) const;
     void refreshPresetIndicator();
     void updateMetersAndStatus();
+    void buildPaperTexture();
 
     RitualAudioProcessor& ritualProcessor;
     juce::TooltipWindow tooltips { this, 600 };
     std::unique_ptr<RitualLookAndFeel> lookAndFeel;
     std::unique_ptr<MeterComponent> meter;
+    juce::Image paperTexture;
 
     juce::Label titleLabel;
     juce::Label subtitleLabel;
@@ -87,4 +89,3 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RitualAudioProcessorEditor)
 };
-

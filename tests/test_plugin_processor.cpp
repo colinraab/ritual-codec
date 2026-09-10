@@ -108,12 +108,26 @@ void tests() {
     for (const auto size : {juce::Point<int>(820,540),juce::Point<int>(1200,800)}) {
         editor->setSize(size.x,size.y);
         int sliders=0;
+        std::vector<juce::Rectangle<int>> controlBounds;
         for(auto* child:editor->getChildren()) if(auto* slider=dynamic_cast<juce::Slider*>(child)) {
             ++sliders;
+            require(slider->isVisible(),"Hidden slider");
+            require(slider->getComponentID().isNotEmpty(),"Missing slider identity");
+            for (const auto& previous : controlBounds)
+                require(!previous.intersects(slider->getBounds()),"Overlapping slider hit targets");
+            controlBounds.push_back(slider->getBounds());
             require(editor->getLocalBounds().contains(slider->getBounds()),"Slider outside editor");
             require(slider->getWidth()>=76 && slider->getHeight()>=60,"Slider clipped at supported size");
         }
         require(sliders==9,"Missing editor controls");
+        int buttons=0;
+        for (auto* child : editor->getChildren()) if (auto* button=dynamic_cast<juce::Button*>(child)) {
+            ++buttons;
+            require(button->isVisible(),"Hidden button");
+            require(editor->getLocalBounds().contains(button->getBounds()),"Button outside editor");
+            require(button->getWidth()>=24 && button->getHeight()>=24,"Button hit target too small");
+        }
+        require(buttons==5,"Missing preset or bypass button");
     }
     bool presetFound=false;
     for(auto* child:editor->getChildren()) if(auto* button=dynamic_cast<juce::TextButton*>(child)) {
@@ -135,7 +149,7 @@ int main(int argc,char** argv) try {
         RitualAudioProcessor p;prepare(p,2);
         std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
         require(editor!=nullptr,"Missing editor");
-        editor->setSize(820,540);
+        if (argc >= 5) editor->setSize(std::stoi(argv[3]), std::stoi(argv[4]));
         const auto image=editor->createComponentSnapshot(editor->getLocalBounds());
         juce::File file=juce::File::getCurrentWorkingDirectory().getChildFile(juce::String(argv[2]));
         auto stream=file.createOutputStream();require(stream!=nullptr,"Cannot write screenshot");

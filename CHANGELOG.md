@@ -2,6 +2,9 @@
 
 ## 0.2.0 — development snapshot
 
+- Redesign the editor with purple ink, serif typography, halftone dials, circuit
+  ornaments and segmented meters; preserve parameter IDs and preset values.
+
 - Rename the project to Ritual Codec; retain the original DSP algorithm.
 - Add a JUCE 9.0.2 effect processor and custom editor for VST3 and macOS AU.
 - Add smoothed automation, dry/wet mix, output gain, aligned bypass, state storage,
