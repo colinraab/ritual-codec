@@ -869,20 +869,37 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillRect (header);
     g.setColour (lineColour.withAlpha (0.84f));
     g.drawRect (header.reduced (0.5f), 1.0f);
-    auto badge = juce::Rectangle<float> (44.0f, 56.0f)
-                     .withX (header.getX() + 12.0f)
-                     .withY (header.getCentreY() - 28.0f);
-    g.setColour (panelRaisedColour.withAlpha (0.94f));
-    g.fillRect (badge);
-    g.setColour (accentBrightColour.withAlpha (0.9f));
-    g.drawRect (badge, 1.0f);
-    g.drawRect (badge.reduced (5.0f), 0.7f);
-    g.setFont (makeFont (31.0f, juce::Font::bold));
-    g.drawText ("0", badge, juce::Justification::centred, false);
-
-    const auto circuitArea = header.withTrimmedLeft (340.0f).withTrimmedRight (205.0f);
-    for (int i = 0; i < 4; ++i)
+    // Full-width routing, with staggered branches and distinct component symbols.
+    g.saveState();
+    g.excludeClipRegion (titleLabel.getBounds().expanded (4, 0));
+    g.excludeClipRegion (subtitleLabel.getBounds().expanded (4, 0));
+    g.excludeClipRegion (statusLabel.getBounds().expanded (4, 0));
+    const auto circuitArea = header.reduced (4.0f, 2.0f);
+    for (int i = 0; i < 5; ++i)
+    {
         drawCircuitTrace (g, circuitArea, i, i % 2 != 0);
+        const float x = header.getX() + header.getWidth() * (0.12f + 0.17f * (float) i);
+        const float y = header.getY() + 12.0f + (float) (i % 3) * 22.0f;
+        juce::Path branch;
+        branch.startNewSubPath (x - 28.0f, y);
+        branch.lineTo (x - 10.0f, y);
+        branch.lineTo (x, y + 10.0f);
+        branch.lineTo (x + 26.0f, y + 10.0f);
+        g.setColour (accentColour.withAlpha (0.5f));
+        g.strokePath (branch, juce::PathStrokeType (0.8f));
+        if (i % 2 == 0)
+        {
+            juce::Path diode;
+            diode.addTriangle (x + 5.0f, y + 6.0f, x + 5.0f, y + 14.0f,
+                               x + 13.0f, y + 10.0f);
+            g.strokePath (diode, juce::PathStrokeType (0.8f));
+            g.drawLine (x + 14.0f, y + 6.0f, x + 14.0f, y + 14.0f, 0.8f);
+        }
+        else
+            g.drawEllipse (x + 5.0f, y + 6.0f, 8.0f, 8.0f, 0.8f);
+        g.drawEllipse (x + 24.0f, y + 8.0f, 4.0f, 4.0f, 0.8f);
+    }
+    g.restoreState();
     const auto pulseCentre = juce::Point<float> (header.getRight() - 165.0f,
                                                   header.getCentreY() - 2.0f);
     g.setColour (lineColour.withAlpha (0.85f));
@@ -921,10 +938,6 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
                 timingBand.getY(), 0.8f);
     g.drawLine (main.getX() + 8.0f, timingBand.getBottom(), main.getRight() - 8.0f,
                 timingBand.getBottom(), 0.55f);
-    for (int i = 0; i < 1; ++i)
-        drawCircuitTrace (g, timingBand.withTrimmedLeft (210.0f).withTrimmedRight (14.0f),
-                          i + 3, i % 2 == 0);
-
     // A few registration marks tie the two panels together.
     drawRegistrationMark (g, { main.getX() + 10.0f, main.getY() + 30.0f }, 5.0f,
                            accentColour, 0.3f);
@@ -935,7 +948,7 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
     // Footer rule and tiny calibration traces.
     g.setColour (lineColour.withAlpha (0.78f));
     g.drawLine (footer.getX(), footer.getY(), footer.getRight(), footer.getY(), 0.8f);
-    drawCircuitTrace (g, footer.withTrimmedLeft (280.0f).withTrimmedRight (100.0f), 5, true);
+
     // The texture is a cached image generated once in the constructor.
     if (! paperTexture.isNull())
     {
@@ -955,18 +968,18 @@ void RitualAudioProcessorEditor::resized()
 {
     auto content = getLocalBounds().reduced (20);
     auto header = content.removeFromTop (84);
-    titleLabel.setBounds (header.getX() + 64, header.getY() + 3,
+    titleLabel.setBounds (header.getX() + 14, header.getY() + 3,
                           juce::jmax (180, header.getWidth() - 390), 43);
-    subtitleLabel.setBounds (header.getX() + 65, header.getY() + 49,
+    subtitleLabel.setBounds (header.getX() + 15, header.getY() + 49,
                              juce::jmax (180, header.getWidth() - 410), 20);
     statusLabel.setBounds (header.getRight() - 238, header.getY() + 55, 226, 18);
 
     auto footer = content.removeFromBottom (50);
-    latencyLabel.setBounds (footer.getX(), footer.getY() + 2,
-                            juce::jmin (270, footer.getWidth() / 3), 18);
+    latencyLabel.setBounds (footer.getX(), footer.getCentreY() - 10,
+                            246, 20);
 
     auto presetStatusArea = footer.removeFromRight (78);
-    presetStatusLabel.setBounds (presetStatusArea.withTrimmedTop (25));
+    presetStatusLabel.setBounds (presetStatusArea.withSizeKeepingCentre (presetStatusArea.getWidth(), 20));
     footer.removeFromRight (8);
     footer.removeFromLeft (258);
     const auto gap = 7;
@@ -974,7 +987,7 @@ void RitualAudioProcessorEditor::resized()
     for (size_t i = 0; i < presetButtons.size(); ++i)
     {
         auto buttonArea = footer.removeFromLeft (buttonWidth);
-        presetButtons[i].setBounds (buttonArea.withTrimmedTop (17).withTrimmedBottom (2));
+        presetButtons[i].setBounds (buttonArea.withSizeKeepingCentre (buttonArea.getWidth(), 30));
         if (i + 1 < presetButtons.size())
             footer.removeFromLeft (gap);
     }
