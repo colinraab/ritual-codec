@@ -58,6 +58,8 @@ private:
     std::unique_ptr<RitualLookAndFeel> lookAndFeel;
     std::unique_ptr<MeterComponent> meter;
     juce::Image paperTexture;
+    juce::Image featheredTexture;
+    void rebuildTextureMask();
 
     juce::Label titleLabel;
     juce::Label subtitleLabel;

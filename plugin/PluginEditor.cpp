@@ -1013,29 +1013,94 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
 
 void RitualAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
 {
-    const auto whole = getLocalBounds();
-    if (! paperTexture.isNull())
+    if (! featheredTexture.isNull()) g.drawImageAt (featheredTexture, 0, 0);
+}
+
+void RitualAudioProcessorEditor::rebuildTextureMask()
+{
+    if (paperTexture.isNull() || getWidth() <= 0 || getHeight() <= 0) return;
+    struct Region { juce::Rectangle<float> bounds; bool circle; };
+    std::vector<Region> regions;
+    const auto add = [&] (juce::Rectangle<float> r, bool circle = false)
+    { if (! r.isEmpty()) regions.push_back ({r, circle}); };
+    const auto addLabel = [&] (juce::Label& label)
     {
-        const auto paintGrain = [&] (float opacity)
+        auto text = label.getText();
+        if (&label == &statusLabel) text = "BYPASSED / LATENCY ALIGNED";
+        if (&label == &latencyLabel) text = "FIXED LATENCY  /  256 samples  /  5.33 ms";
+        if (&label == &presetStatusLabel) text = "DAMAGED";
+        juce::GlyphArrangement glyphs;
+        glyphs.addLineOfText (label.getFont(), text, 0, 0);
+        const auto ink = glyphs.getBoundingBox (0, -1, true);
+        const auto box = label.getBounds().toFloat().reduced (2.0f, 0.0f);
+        const float w = juce::jmin (box.getWidth(), ink.getWidth() + 4.0f);
+        const float h = juce::jmin (box.getHeight(), ink.getHeight() + 4.0f);
+        const auto align = label.getJustificationType();
+        const float x = align.testFlags (juce::Justification::right) ? box.getRight() - w
+                      : align.testFlags (juce::Justification::horizontallyCentred)
+                          ? box.getCentreX() - w * 0.5f : box.getX();
+        add ({x, box.getCentreY() - h * 0.5f, w, h});
+    };
+    for (auto* label : { &titleLabel, &subtitleLabel, &statusLabel, &spectralHeading,
+                         &timingHeading, &latencyLabel, &presetStatusLabel }) addLabel (*label);
+    for (auto& label : controlLabels) addLabel (label);
+    for (auto* slider : controlSliders)
+    {
+        const auto layout = slider->getLookAndFeel().getSliderLayout (*slider);
+        const auto origin = slider->getPosition().toFloat();
+        auto area = layout.sliderBounds.toFloat().translated (origin.x, origin.y);
+        add (layout.textBoxBounds.toFloat().translated (origin.x, origin.y));
+        if (slider->getSliderStyle() == juce::Slider::LinearHorizontal)
+            add (area.withSizeKeepingCentre (area.getWidth(), 26.0f));
+        else
         {
-            g.setOpacity (opacity);
-            for (int y = 0; y < whole.getHeight(); y += paperTexture.getHeight())
-                for (int x = 0; x < whole.getWidth(); x += paperTexture.getWidth())
-                    g.drawImageAt (paperTexture, x, y);
-        };
-        g.saveState();
-        paintGrain (0.14f);
-        // Leave stronger paper texture only between the component rectangles.
-        for (int i = 0; i < getNumChildComponents(); ++i)
-        {
-            const auto* child = getChildComponent (i);
-            if (child->isVisible()) g.excludeClipRegion (child->getBounds().expanded (3));
+            area.reduce (8.0f, 4.0f);
+            const float diameter = juce::jmin (area.getWidth(), area.getHeight()) + 6.0f;
+            add (area.withSizeKeepingCentre (diameter, diameter), true);
         }
-        paintGrain (0.48f);
-        g.restoreState();
     }
+    for (auto& button : presetButtons) add (button.getBounds().toFloat().reduced (1.0f));
+    add (bypassButton.getBounds().toFloat().withSizeKeepingCentre
+          (bypassButton.getWidth() - 10.0f, 34.0f));
+    // Meter graphics occupy just the top section; the analyzer has its own bounds.
+    const auto m = meter->getBounds().toFloat();
+    add ({m.getX() + 14, m.getY() + 13, 62, 19});
+    add ({m.getX() + 14, m.getY() + 54, m.getWidth() - 28, 64});
+    add ({m.getX() + 14, m.getY() + 126, m.getWidth() - 28, 64});
+    add ({m.getX() + 12, m.getY() + 216, m.getWidth() - 24, m.getHeight() - 228});
 
-
+    const int width = getWidth(), height = getHeight();
+    std::vector<float> opacity ((size_t) width * (size_t) height, 0.60f);
+    constexpr float feather = 16.0f;
+    for (const auto& region : regions)
+    {
+        const auto pixels = region.bounds.expanded (feather).getSmallestIntegerContainer()
+                               .getIntersection (getLocalBounds());
+        for (int y = pixels.getY(); y < pixels.getBottom(); ++y)
+            for (int x = pixels.getX(); x < pixels.getRight(); ++x)
+            {
+                const auto point = juce::Point<float> ((float) x + 0.5f, (float) y + 0.5f);
+                float distance;
+                if (region.circle)
+                    distance = point.getDistanceFrom (region.bounds.getCentre()) - region.bounds.getWidth() * 0.5f;
+                else
+                {
+                    const float dx = juce::jmax (region.bounds.getX() - point.x, 0.0f, point.x - region.bounds.getRight());
+                    const float dy = juce::jmax (region.bounds.getY() - point.y, 0.0f, point.y - region.bounds.getBottom());
+                    distance = std::sqrt (dx * dx + dy * dy);
+                }
+                const float t = juce::jlimit (0.0f, 1.0f, distance / feather);
+                const float alpha = 0.12f + 0.48f * t * t * (3.0f - 2.0f * t);
+                auto& value = opacity[(size_t) y * (size_t) width + (size_t) x];
+                value = juce::jmin (value, alpha);
+            }
+    }
+    featheredTexture = juce::Image (juce::Image::ARGB, width, height, true);
+    juce::Image::BitmapData bitmap (featheredTexture, juce::Image::BitmapData::writeOnly);
+    for (int y = 0; y < height; ++y)
+        for (int x = 0; x < width; ++x)
+            bitmap.setPixelColour (x, y, paperTexture.getPixelAt (x % paperTexture.getWidth(), y % paperTexture.getHeight())
+                .withMultipliedAlpha (opacity[(size_t) y * (size_t) width + (size_t) x]));
 }
 
 void RitualAudioProcessorEditor::resized()
@@ -1096,4 +1161,5 @@ void RitualAudioProcessorEditor::resized()
     }
 
     bypassButton.setBounds (rowTwo.reduced (8, 22));
+    rebuildTextureMask();
 }
