@@ -53,3 +53,18 @@ interface toward a technical instrument. Cormorant is the current choice.
 Section headings have taller dedicated bands and inset text. Control rows have
 10 px vertical clearance and additional horizontal panel padding so value boxes
 remain clear of the surrounding rules, including at the minimum window size.
+
+## Native control polish
+
+The working panels are now untextured, with paper grain reserved for the frame
+and header. Single panel rules and a quieter section motif establish hierarchy.
+Cormorant is used across display and parameter lettering, with IBM Plex Mono for
+numeric and utility labels. The analyzer begins directly below the meters instead
+of leaving a height-dependent gap. Horizontal controls use compact bounds so their
+readouts stay near the tracks; rotary drawing areas are capped for consistent scale.
+All changes use JUCE's native drawing and the existing cached paper texture.
+
+Knobs use sparse ticks, a clear active arc and pointer, and a small center cap.
+Sliders, presets, and bypass share restrained surfaces and border treatments;
+preset labels use embedded Cormorant. The functional controls no longer carry
+stipple or star ornaments, keeping the printed motif in the surrounding frame.
