@@ -124,16 +124,37 @@ void tests() {
     {
         auto capturedProcessor=std::make_unique<RitualAudioProcessor>();
         set(*capturedProcessor,"mix",0.0f);prepare(*capturedProcessor,2);
-        std::vector<float> signal(4096);
-        for(size_t i=0;i<signal.size()/2;++i) {
-            signal[i*2]=.2f*std::sin(static_cast<float>(i)*.07f);
-            signal[i*2+1]=-signal[i*2];
+        std::vector<float> tapSignal(4096);
+        uint32_t noise = 0x12345678u;
+        for(size_t i=0;i<tapSignal.size()/2;++i) {
+            noise = noise * 1664525u + 1013904223u;
+            tapSignal[i*2] = (static_cast<float>(noise >> 8) / 16777216.0f - .5f) * .4f;
+            tapSignal[i*2+1] = -tapSignal[i*2];
         }
-        render(*capturedProcessor,signal,2,127);
+        render(*capturedProcessor,tapSignal,2,127);
         SpectrumTap::Frame frame;
         require(capturedProcessor->spectrumTap.readLatest(frame),"Processor spectrum tap is disconnected");
         for(size_t i=0;i<SpectrumTap::size;++i) {
-            require(frame.samples[0][i]==frame.samples[2][i] && frame.samples[1][i]==frame.samples[3][i],"Spectrum input/output are not latency aligned");
+            // Two 1024-sample frames were captured. The latest frame starts at
+            // sample 1024; the input tap must include the fixed 256-sample delay.
+            // Broadband samples make even a one-sample timing error conspicuous.
+            const float expected = tapSignal[(1024 + i - 256) * 2];
+            constexpr float tolerance = 1.0e-6f;
+            const auto close = [=] (float actual, float reference) {
+                return std::isfinite(actual) && std::abs(actual - reference) <= tolerance;
+            };
+            if (!close(frame.samples[0][i], expected)
+                || !close(frame.samples[1][i], -expected)
+                || !close(frame.samples[2][i], expected)
+                || !close(frame.samples[3][i], -expected)) {
+                std::cerr << "Spectrum mismatch at " << i << ": expected=" << expected
+                          << " input=" << frame.samples[0][i] << " output=" << frame.samples[2][i]
+                          << " output error=" << std::abs(frame.samples[2][i] - expected)
+                          << " mix=" << capturedProcessor->parameters.getRawParameterValue("mix")->load()
+                          << " output dB=" << capturedProcessor->parameters.getRawParameterValue("output")->load()
+                          << '\n';
+                require(false,"Spectrum input/output are not latency aligned");
+            }
             require(frame.samples[0][i]==-frame.samples[1][i],"Spectrum tap lost opposite-phase stereo");
         }
     }

@@ -1061,7 +1061,7 @@ void RitualAudioProcessorEditor::rebuildTextureMask()
     }
     for (auto& button : presetButtons) add (button.getBounds().toFloat().reduced (1.0f));
     add (bypassButton.getBounds().toFloat().withSizeKeepingCentre
-          (bypassButton.getWidth() - 10.0f, 34.0f));
+          (static_cast<float> (bypassButton.getWidth()) - 10.0f, 34.0f));
     // Meter graphics occupy just the top section; the analyzer has its own bounds.
     const auto m = meter->getBounds().toFloat();
     add ({m.getX() + 14, m.getY() + 13, 62, 19});
