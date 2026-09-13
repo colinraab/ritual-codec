@@ -8,11 +8,18 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <functional>
 #include <memory>
 #include <stdexcept>
 #include <vector>
 
 namespace {
+// Copies, reset silence, and rejected state updates must preserve exact values.
+// std::equal_to expresses that intent without relaxing these checks to a tolerance.
+template <typename T>
+bool exactlyEqual(T actual, T expected) {
+    return std::equal_to<T>{}(actual, expected);
+}
 void require(bool ok, const char* message) { if (!ok) throw std::runtime_error(message); }
 void set(RitualAudioProcessor& p, const char* id, float value) {
     auto* v = p.parameters.getParameter(id); require(v != nullptr,"Missing parameter");
@@ -55,7 +62,7 @@ void tests() {
     for(int channels:{1,2})for(double rate:{44100.,48000.,96000.}) {
         std::vector<float> input(static_cast<size_t>(4096*channels));
         for(int i=0;i<3500;++i)for(int ch=0;ch<channels;++ch)
-            input[static_cast<size_t>(i*channels+ch)]=.2f*std::sin(float(i)*(.017f+ch*.009f));
+            input[static_cast<size_t>(i*channels+ch)]=.2f*std::sin(static_cast<float>(i)*(.017f+static_cast<float>(ch)*.009f));
         for(int mode=0;mode<3;++mode) {
             RitualAudioProcessor p;
             if(mode==0)set(p,"mix",0);
@@ -78,7 +85,7 @@ void tests() {
         compare(render(a,input,channels,1),render(b,input,channels,513),0,"Automation depends on host block size");
         a.releaseResources();prepare(a,channels,rate);
         auto reset=render(a,std::vector<float>(2048u*static_cast<unsigned>(channels)),channels,64);
-        for(float v:reset)require(v==0,"Reset leaked old signal");
+        for(float v:reset)require(exactlyEqual(v,0.0f),"Reset leaked old signal");
     }
     RitualAudioProcessor state;
     set(state,"budget",.123f);set(state,"clock",17);set(state,"output",-7.3f);set(state,"bypass",1);
@@ -92,11 +99,11 @@ void tests() {
     }
     const auto before=restored.parameters.getRawParameterValue("budget")->load();
     restored.setStateInformation("garbage",7);
-    require(restored.parameters.getRawParameterValue("budget")->load()==before,"Invalid state changed values");
+    require(exactlyEqual(restored.parameters.getRawParameterValue("budget")->load(),before),"Invalid state changed values");
     juce::XmlElement invalid("PARAMETERS");invalid.setAttribute("stateVersion",1);
     juce::MemoryBlock invalidBytes;juce::AudioProcessor::copyXmlToBinary(invalid,invalidBytes);
     restored.setStateInformation(invalidBytes.getData(),static_cast<int>(invalidBytes.getSize()));
-    require(restored.parameters.getRawParameterValue("budget")->load()==before,"Incomplete state changed values");
+    require(exactlyEqual(restored.parameters.getRawParameterValue("budget")->load(),before),"Incomplete state changed values");
     RitualAudioProcessor badRate;prepare(badRate,2,384000);
     std::vector<float> signal(2048);signal[0]=.5f;
     checkDelay(signal,render(badRate,signal,2,17),2);
@@ -110,16 +117,16 @@ void tests() {
         tap->prepare(96000.0);
         for(int i=0;i<SpectrumTap::size*10;++i)tap->push(.25f,-.25f,.125f,-.125f);
         require(tap->readLatest(captured),"Spectrum queue did not publish");
-        require(captured.sampleRate==96000.0,"Spectrum rate lost");
+        require(exactlyEqual(captured.sampleRate,96000.0),"Spectrum rate lost");
         for(int i=0;i<SpectrumTap::size;++i) {
             const auto n=static_cast<size_t>(i);
-            require(captured.samples[0][n]==.25f && captured.samples[1][n]==-.25f,"Stereo input capture changed");
-            require(captured.samples[2][n]==.125f && captured.samples[3][n]==-.125f,"Stereo output capture changed");
+            require(exactlyEqual(captured.samples[0][n],.25f) && exactlyEqual(captured.samples[1][n],-.25f),"Stereo input capture changed");
+            require(exactlyEqual(captured.samples[2][n],.125f) && exactlyEqual(captured.samples[3][n],-.125f),"Stereo output capture changed");
         }
         require(!tap->readLatest(captured),"Spectrum queue failed to drain");
         tap->push(1,1,1,1);tap->prepare(48000);
         for(int i=0;i<SpectrumTap::size;++i)tap->push(0,0,0,0);
-        require(tap->readLatest(captured) && captured.samples[0][0]==0,"Spectrum partial frame survived prepare");
+        require(tap->readLatest(captured) && exactlyEqual(captured.samples[0][0],0.0f),"Spectrum partial frame survived prepare");
     }
     {
         auto capturedProcessor=std::make_unique<RitualAudioProcessor>();
@@ -155,7 +162,7 @@ void tests() {
                           << '\n';
                 require(false,"Spectrum input/output are not latency aligned");
             }
-            require(frame.samples[0][i]==-frame.samples[1][i],"Spectrum tap lost opposite-phase stereo");
+            require(exactlyEqual(frame.samples[0][i],-frame.samples[1][i]),"Spectrum tap lost opposite-phase stereo");
         }
     }
     RitualAudioProcessor ui;prepare(ui,2);
@@ -191,7 +198,7 @@ void tests() {
     }
     require(presetFound,"Missing Damaged preset");
     require(std::abs(ui.parameters.getRawParameterValue("budget")->load()-.22f)<1e-6f,"Preset did not set budget");
-    require(ui.parameters.getRawParameterValue("clock")->load()==8,"Preset did not set clock");
+    require(exactlyEqual(ui.parameters.getRawParameterValue("clock")->load(),8.0f),"Preset did not set clock");
     std::cout<<"PASS: editor construction, two sizes, nine visible controls, preset parameter updates\n";
     std::cout<<"PASS: mono/stereo, 44.1/48/96 kHz, 256-sample dry/parameter/host bypass, "
                 "1/127/513/1025-sample blocks, core equivalence, smoothed automation, "
