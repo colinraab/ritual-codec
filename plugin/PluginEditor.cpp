@@ -929,11 +929,10 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillRect (header);
     g.setColour (lineColour.withAlpha (0.84f));
     drawInkBorder (g, header.reduced (0.5f), 1.0f);
-    // Full-width routing, with staggered branches and distinct component symbols.
+    // Continuous full-width routing behind the transparent header labels.
+    // Clipping out label bounds creates conspicuous rectangular gaps in the traces.
     g.saveState();
-    g.excludeClipRegion (titleLabel.getBounds().expanded (4, 0));
-    g.excludeClipRegion (subtitleLabel.getBounds().expanded (4, 0));
-    g.excludeClipRegion (statusLabel.getBounds().expanded (4, 0));
+    g.reduceClipRegion (header.toNearestInt());
     const auto circuitArea = header.reduced (4.0f, 2.0f);
     for (int i = 0; i < 5; ++i)
     {
