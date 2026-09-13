@@ -221,6 +221,39 @@ public:
         return makeFont (15.0f, juce::Font::bold);
     }
 
+    static juce::TextLayout tooltipLayout (const juce::String& text)
+    {
+        juce::AttributedString attributed;
+        attributed.setJustification (juce::Justification::centred);
+        attributed.append (text, makeMonoFont (13.0f), textColour);
+        juce::TextLayout layout;
+        layout.createLayoutWithBalancedLineLengths (attributed, 360.0f);
+        return layout;
+    }
+
+    juce::Rectangle<int> getTooltipBounds (const juce::String& text,
+                                         juce::Point<int> screenPos,
+                                         juce::Rectangle<int> parentArea) override
+    {
+        const auto layout = tooltipLayout (text);
+        const int width = juce::roundToInt (std::ceil (layout.getWidth())) + 20;
+        const int height = juce::roundToInt (std::ceil (layout.getHeight())) + 12;
+        return juce::Rectangle<int> (
+            screenPos.x > parentArea.getCentreX() ? screenPos.x - width - 12 : screenPos.x + 24,
+            screenPos.y > parentArea.getCentreY() ? screenPos.y - height - 6 : screenPos.y + 6,
+            width, height).constrainedWithin (parentArea);
+    }
+
+    void drawTooltip (juce::Graphics& g, const juce::String& text,
+                      int width, int height) override
+    {
+        g.fillAll (panelRaisedColour);
+        g.setColour (lineColour);
+        g.drawRect (0, 0, width, height);
+        tooltipLayout (text).draw (g, juce::Rectangle<int> (width, height)
+                                       .toFloat().reduced (10.0f, 6.0f));
+    }
+
     int getSliderThumbRadius (juce::Slider&) override
     {
         return 5;
@@ -565,6 +598,7 @@ RitualAudioProcessorEditor::RitualAudioProcessorEditor (RitualAudioProcessor& p)
 {
     setOpaque (true);
     setLookAndFeel (lookAndFeel.get());
+    tooltips.setLookAndFeel (lookAndFeel.get());
     buildPaperTexture();
 
     titleLabel.setText ("Ritual Codec", juce::dontSendNotification);
@@ -690,6 +724,7 @@ RitualAudioProcessorEditor::~RitualAudioProcessorEditor()
 {
     stopTimer();
     setLookAndFeel (nullptr);
+    tooltips.setLookAndFeel (nullptr);
 }
 
 void RitualAudioProcessorEditor::buildPaperTexture()
