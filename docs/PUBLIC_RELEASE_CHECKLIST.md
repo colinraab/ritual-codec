@@ -24,6 +24,8 @@ Track evidence or relevant commits beside completed items. Making the repository
 
 - [x] Capture a clean Linux build and reproducible pre-bitstream audio baseline. See BASELINE.md and reports/baseline.json. Offline JUCE override used; Mac/AU remains unchecked.
 - [ ] Implement the real experimental Ritual bitstream before initial public release (owner decision, 2026-09-17).
+  - [x] First independent CLI encoder/decoder, versioned `.rit` packets, actual bitrate reporting, bounded parser and regression tests. See BITSTREAM.md.
+  - [ ] Listening approval, temporal/stereo refinement, streaming implementation and plugin integration.
 
 ## Before distributing binaries
 
@@ -43,4 +45,3 @@ Track evidence or relevant commits beside completed items. Making the repository
 - Compiler-warning cleanup and Linux regression checks completed during development.
 - User confirmed local Mac tests passed before the warning cleanup; a fresh release checkout and subsequent Mac verification remain unchecked.
 - GitHub Actions was changed to manual-only during development; confirm configuration at release time.
-

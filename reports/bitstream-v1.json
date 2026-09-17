@@ -1,0 +1,46 @@
+{
+  "96": {
+    "bytes": 288024,
+    "requested_kbps": 96,
+    "file_kbps": 96.008,
+    "frame_samples": 128,
+    "peak": 0.4897289276123047,
+    "rms_dbfs": -18.038440506072558,
+    "finite": true,
+    "sha256": "ab02ff19eea71b40b3c539abc29f83dca4b5ed1d1d41d11d249bec3be27b5e23",
+    "onset_10ms_energy_median_db": -0.020917591871612518
+  },
+  "128": {
+    "bytes": 378024,
+    "requested_kbps": 128,
+    "file_kbps": 126.008,
+    "frame_samples": 128,
+    "peak": 0.4760165214538574,
+    "rms_dbfs": -18.038440506689902,
+    "finite": true,
+    "sha256": "7dce215ad728c8e4fe7576351ddd34bcb923221be50612b16c2363da00227eaa",
+    "onset_10ms_energy_median_db": -0.030217469803481337
+  },
+  "256": {
+    "bytes": 765024,
+    "requested_kbps": 256,
+    "file_kbps": 255.008,
+    "frame_samples": 128,
+    "peak": 0.49561774730682373,
+    "rms_dbfs": -18.038440506288676,
+    "finite": true,
+    "sha256": "8131876387bb45c8f53068cba883f5309105f9415aca957bdf70eec252afb05e",
+    "onset_10ms_energy_median_db": -0.011886830921758799
+  },
+  "512": {
+    "bytes": 1530024,
+    "requested_kbps": 512,
+    "file_kbps": 510.008,
+    "frame_samples": 128,
+    "peak": 0.4949500560760498,
+    "rms_dbfs": -18.038440506227495,
+    "finite": true,
+    "sha256": "48153e9c98ce97b80577e5887aba847a12e20eda8d8254c8400bd17f30ae7562",
+    "onset_10ms_energy_median_db": -0.0033332232546732766
+  }
+}

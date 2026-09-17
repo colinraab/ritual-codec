@@ -6,8 +6,11 @@ into texture. **Punch** protects attacks for rhythmic material.
 
 The repository contains a dependency-free C++ DSP engine, WAV command-line tool,
 and a JUCE 9.0.2 plugin project targeting **VST3** and **Audio Unit (AU)**. It is
-currently an effect prototype, not a compressed bitstream format; Budget is an
-artistic control, not a bitrate in kbps.
+currently an effect prototype; its Budget remains an artistic control, not kbps.
+A separate experimental `ritual-stream` CLI now encodes and decodes actual `.rit`
+files with an explicit byte budget. See [the bitstream experiment](docs/BITSTREAM.md)
+for commands, the versioned format, tests and limitations. It is not integrated
+into the plugin yet and does not duplicate the existing engine's sound.
 
 ![Ritual Codec plugin interface](docs/plugin-preview.png)
 
@@ -125,8 +128,8 @@ The interface and sound are experimental. Listen before relying on presets in
 productions; future algorithm versions will need explicit preset compatibility.
 
 Possible next steps: independent band clocks, a dedicated low-band path, separate
-attack-rescue and decay controls, and an actual encoder/decoder bitstream with
-quantized gains and an explicit payload budget. The current Punch implementation
+attack-rescue and decay controls, and integration of the experimental bitstream
+after listening and streaming validation. The current plugin Punch implementation
 uses original PCM during attacks, so its preservation is not free compression.
 
 ## License
