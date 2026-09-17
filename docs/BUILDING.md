@@ -124,8 +124,8 @@ directory.
 
 ## Continuous integration
 
-`.github/workflows/build.yml` builds the CLI and engine tests on every pull
-request and push, and can also be started with `workflow_dispatch`. Its matrix
+`.github/workflows/build.yml` runs only when started with `workflow_dispatch`;
+pushes and pull requests do not start builds. Its selectable matrix
 covers Windows VST3 plus CLI, macOS universal VST3/AU plus CLI, and Linux VST3
 plus CLI. Each job uploads separate CLI, VST3, and (on macOS) AU ZIP artifacts.
 No job publishes a release. The macOS job validates the AU bundle with

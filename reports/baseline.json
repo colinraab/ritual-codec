@@ -1,0 +1,352 @@
+{
+  "revision": "19496a18328ac6eb73cb188ea69b407fcc85dab9",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "python": "3.12.14",
+  "numpy": "2.3.5",
+  "scipy": "1.17.0",
+  "compiler": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+  "repeat_render_bytes_identical": true,
+  "audio_sha256": {
+    "audio/00_comparison.wav": "5da9daa6b792d709e72f489c67337e2c0ab399958b60b49b464d34bbcc592227",
+    "audio/01_source.wav": "d055ae0b6a900fec75815225b3996a5b2bec7a72850e34c23b55ab322f882041",
+    "audio/02_subtle.wav": "894aa93b1acd7a4a6b2aeb57c3dcce104b895492d514d782ef435544501a22ac",
+    "audio/03_damaged_punch.wav": "320e8ec48a53fa53666beff03689aa24ec6acb6bcb809af5099509817d4d462b",
+    "audio/04_damaged_no_punch.wav": "3df22af25bca98bba4fa3f30cf22432fc94d6c68f75241c0b1f2f4f928621f98",
+    "audio/05_extreme_punch.wav": "ff61e6fd911ce35dd462d7fa737f24b39220b19e48f2abceb4bd7c01603b36be",
+    "audio/06_source_second_excerpt.wav": "6fe7911f484196e16c1ee2a2694338523a927132bf1f559ed522b4e8de07abb2",
+    "audio/07_second_damaged_punch.wav": "8d2bc3da097e4ac5d602373c5187acdc3aa96ce3eec9e25c2a8e530365436031"
+  },
+  "runs": [
+    {
+      "02_subtle.wav": {
+        "parameters": [
+          0.65,
+          0.4,
+          0.35,
+          0.9,
+          0.15,
+          2,
+          1
+        ],
+        "runtime": {
+          "latency_samples": 256,
+          "latency_ms": 5.33333,
+          "seconds": 0.493664,
+          "realtime_factor": 0.0205693,
+          "peak": 0.49557
+        },
+        "metrics": {
+          "rms_dbfs": -18.046741568110434,
+          "sample_peak": 0.49557042121887207,
+          "oversampled_4x_peak": 0.5011159964525491,
+          "rms_error_relative_db": -31.737940042083967,
+          "finite": true,
+          "onset_candidates": 40,
+          "attack_10ms_energy_db_median": -0.0008938717481483218,
+          "attack_10ms_energy_db_p10": -0.027669878129332165,
+          "attack_10ms_normalized_error_median": 6.342507776985478e-05
+        }
+      },
+      "03_damaged_punch.wav": {
+        "parameters": [
+          0.22,
+          0.8,
+          0.78,
+          1,
+          0.65,
+          8,
+          3
+        ],
+        "runtime": {
+          "latency_samples": 256,
+          "latency_ms": 5.33333,
+          "seconds": 0.469389,
+          "realtime_factor": 0.0195579,
+          "peak": 0.499829
+        },
+        "metrics": {
+          "rms_dbfs": -18.06782043429389,
+          "sample_peak": 0.4998289942741394,
+          "oversampled_4x_peak": 0.5042803834026267,
+          "rms_error_relative_db": -14.483594515961345,
+          "finite": true,
+          "onset_candidates": 40,
+          "attack_10ms_energy_db_median": -0.02060239152376186,
+          "attack_10ms_energy_db_p10": -0.3437342256281996,
+          "attack_10ms_normalized_error_median": 0.004313885223219126
+        }
+      },
+      "04_damaged_no_punch.wav": {
+        "parameters": [
+          0.22,
+          0.8,
+          0.78,
+          0,
+          0.65,
+          8,
+          3
+        ],
+        "runtime": {
+          "latency_samples": 256,
+          "latency_ms": 5.33333,
+          "seconds": 0.439018,
+          "realtime_factor": 0.0182924,
+          "peak": 0.510088
+        },
+        "metrics": {
+          "rms_dbfs": -18.05972028156393,
+          "sample_peak": 0.5100881457328796,
+          "oversampled_4x_peak": 0.5233867924582957,
+          "rms_error_relative_db": -13.35407300073056,
+          "finite": true,
+          "onset_candidates": 40,
+          "attack_10ms_energy_db_median": -0.13800535121241045,
+          "attack_10ms_energy_db_p10": -0.6651475237459971,
+          "attack_10ms_normalized_error_median": 0.08296568489885682
+        }
+      },
+      "05_extreme_punch.wav": {
+        "parameters": [
+          0.05,
+          1,
+          0.94,
+          1,
+          0.9,
+          16,
+          7
+        ],
+        "runtime": {
+          "latency_samples": 256,
+          "latency_ms": 5.33333,
+          "seconds": 0.397808,
+          "realtime_factor": 0.0165754,
+          "peak": 0.491776
+        },
+        "metrics": {
+          "rms_dbfs": -18.078329416675963,
+          "sample_peak": 0.4917755126953125,
+          "oversampled_4x_peak": 0.497329016310607,
+          "rms_error_relative_db": -11.728505517574085,
+          "finite": true,
+          "onset_candidates": 40,
+          "attack_10ms_energy_db_median": -0.07020849199123355,
+          "attack_10ms_energy_db_p10": -0.5412521716060181,
+          "attack_10ms_normalized_error_median": 0.018138845383072796
+        }
+      },
+      "07_second_damaged_punch.wav": {
+        "parameters": [
+          0.22,
+          0.8,
+          0.78,
+          1,
+          0.65,
+          8,
+          3
+        ],
+        "runtime": {
+          "latency_samples": 256,
+          "latency_ms": 5.33333,
+          "seconds": 0.256432,
+          "realtime_factor": 0.0213693,
+          "peak": 0.463844
+        },
+        "metrics": {
+          "rms_dbfs": -17.989271958389587,
+          "sample_peak": 0.4638438820838928,
+          "oversampled_4x_peak": 0.47464624921785437,
+          "rms_error_relative_db": -17.34329247323293,
+          "finite": true
+        }
+      },
+      "comparison": {
+        "order": [
+          "01_source.wav",
+          "02_subtle.wav",
+          "03_damaged_punch.wav",
+          "04_damaged_no_punch.wav",
+          "05_extreme_punch.wav"
+        ],
+        "starts_seconds": [
+          0,
+          6.5,
+          13,
+          19.5,
+          26
+        ],
+        "segment_seconds": 6,
+        "normalization": "Same -6.02 dB source attenuation; no individual output normalization."
+      }
+    },
+    {
+      "02_subtle.wav": {
+        "parameters": [
+          0.65,
+          0.4,
+          0.35,
+          0.9,
+          0.15,
+          2,
+          1
+        ],
+        "runtime": {
+          "latency_samples": 256,
+          "latency_ms": 5.33333,
+          "seconds": 0.54263,
+          "realtime_factor": 0.0226096,
+          "peak": 0.49557
+        },
+        "metrics": {
+          "rms_dbfs": -18.046741568110434,
+          "sample_peak": 0.49557042121887207,
+          "oversampled_4x_peak": 0.5011159964525491,
+          "rms_error_relative_db": -31.737940042083967,
+          "finite": true,
+          "onset_candidates": 40,
+          "attack_10ms_energy_db_median": -0.0008938717481483218,
+          "attack_10ms_energy_db_p10": -0.027669878129332165,
+          "attack_10ms_normalized_error_median": 6.342507776985478e-05
+        }
+      },
+      "03_damaged_punch.wav": {
+        "parameters": [
+          0.22,
+          0.8,
+          0.78,
+          1,
+          0.65,
+          8,
+          3
+        ],
+        "runtime": {
+          "latency_samples": 256,
+          "latency_ms": 5.33333,
+          "seconds": 0.478698,
+          "realtime_factor": 0.0199458,
+          "peak": 0.499829
+        },
+        "metrics": {
+          "rms_dbfs": -18.06782043429389,
+          "sample_peak": 0.4998289942741394,
+          "oversampled_4x_peak": 0.5042803834026267,
+          "rms_error_relative_db": -14.483594515961345,
+          "finite": true,
+          "onset_candidates": 40,
+          "attack_10ms_energy_db_median": -0.02060239152376186,
+          "attack_10ms_energy_db_p10": -0.3437342256281996,
+          "attack_10ms_normalized_error_median": 0.004313885223219126
+        }
+      },
+      "04_damaged_no_punch.wav": {
+        "parameters": [
+          0.22,
+          0.8,
+          0.78,
+          0,
+          0.65,
+          8,
+          3
+        ],
+        "runtime": {
+          "latency_samples": 256,
+          "latency_ms": 5.33333,
+          "seconds": 0.426934,
+          "realtime_factor": 0.0177889,
+          "peak": 0.510088
+        },
+        "metrics": {
+          "rms_dbfs": -18.05972028156393,
+          "sample_peak": 0.5100881457328796,
+          "oversampled_4x_peak": 0.5233867924582957,
+          "rms_error_relative_db": -13.35407300073056,
+          "finite": true,
+          "onset_candidates": 40,
+          "attack_10ms_energy_db_median": -0.13800535121241045,
+          "attack_10ms_energy_db_p10": -0.6651475237459971,
+          "attack_10ms_normalized_error_median": 0.08296568489885682
+        }
+      },
+      "05_extreme_punch.wav": {
+        "parameters": [
+          0.05,
+          1,
+          0.94,
+          1,
+          0.9,
+          16,
+          7
+        ],
+        "runtime": {
+          "latency_samples": 256,
+          "latency_ms": 5.33333,
+          "seconds": 0.388263,
+          "realtime_factor": 0.0161776,
+          "peak": 0.491776
+        },
+        "metrics": {
+          "rms_dbfs": -18.078329416675963,
+          "sample_peak": 0.4917755126953125,
+          "oversampled_4x_peak": 0.497329016310607,
+          "rms_error_relative_db": -11.728505517574085,
+          "finite": true,
+          "onset_candidates": 40,
+          "attack_10ms_energy_db_median": -0.07020849199123355,
+          "attack_10ms_energy_db_p10": -0.5412521716060181,
+          "attack_10ms_normalized_error_median": 0.018138845383072796
+        }
+      },
+      "07_second_damaged_punch.wav": {
+        "parameters": [
+          0.22,
+          0.8,
+          0.78,
+          1,
+          0.65,
+          8,
+          3
+        ],
+        "runtime": {
+          "latency_samples": 256,
+          "latency_ms": 5.33333,
+          "seconds": 0.244962,
+          "realtime_factor": 0.0204135,
+          "peak": 0.463844
+        },
+        "metrics": {
+          "rms_dbfs": -17.989271958389587,
+          "sample_peak": 0.4638438820838928,
+          "oversampled_4x_peak": 0.47464624921785437,
+          "rms_error_relative_db": -17.34329247323293,
+          "finite": true
+        }
+      },
+      "comparison": {
+        "order": [
+          "01_source.wav",
+          "02_subtle.wav",
+          "03_damaged_punch.wav",
+          "04_damaged_no_punch.wav",
+          "05_extreme_punch.wav"
+        ],
+        "starts_seconds": [
+          0,
+          6.5,
+          13,
+          19.5,
+          26
+        ],
+        "segment_seconds": 6,
+        "normalization": "Same -6.02 dB source attenuation; no individual output normalization."
+      }
+    }
+  ],
+  "limitations": [
+    "Hashes are a same-toolchain reference, not a cross-platform bit-exact promise.",
+    "Timing is offline engine processing elapsed time in a shared VM, not DAW CPU or a realtime deadline guarantee.",
+    "Transient metrics use heuristic onset candidates, not annotated drum hits.",
+    "CLI trims the 256-sample delay; plugin/engine tests separately check streaming latency.",
+    "No AU, macOS, Windows or DAW-host validation is implied."
+  ]
+}

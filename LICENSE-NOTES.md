@@ -21,3 +21,11 @@ No ownership of third-party music or endorsement by its creator is claimed.
 
 IBM Plex Mono is bundled under the SIL Open Font License 1.1. See
 `assets/fonts/OFL.txt`; the font retains its separate license.
+
+Cormorant Garamond is bundled under the SIL Open Font License 1.1. See
+`assets/fonts/CormorantGaramond-OFL.txt`; it also retains its separate license.
+
+The project's AGPL-3.0-or-later grant covers our own code. The pinned JUCE
+dependency declares AGPL-3.0-only as its open-source option, so combined plugin
+distributions use AGPL version 3 with the dependency's separate notices retained.
+It does not grant a later-version license for JUCE itself.
