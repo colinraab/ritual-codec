@@ -5,6 +5,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include "../src/bitfamine.hpp"
+#include "../src/rit_stream.hpp"
 #include "SpectrumTap.h"
 
 #include <array>
@@ -24,9 +25,11 @@ class RitualAudioProcessor final : public juce::AudioProcessor
 {
 public:
     // These strings are part of the saved-state and host-automation contract.
-    // The version hint is deliberately kept at 1 until a migration is added.
+    // Existing parameter IDs retain their version hint for host compatibility.
+    // The experimental bitstream parameter is appended with hint 2 below.
     inline static constexpr int parameterVersion = 1;
-    inline static constexpr int stateVersion = 1;
+    inline static constexpr int bitstreamParameterVersion = 2;
+    inline static constexpr int stateVersion = 2;
 
     inline static constexpr char budgetParameterID[] = "budget";
     inline static constexpr char competitionParameterID[] = "competition";
@@ -38,6 +41,7 @@ public:
     inline static constexpr char mixParameterID[] = "mix";
     inline static constexpr char outputParameterID[] = "output";
     inline static constexpr char bypassParameterID[] = "bypass";
+    inline static constexpr char bitstreamParameterID[] = "bitstream";
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
@@ -79,6 +83,9 @@ public:
 
     std::atomic<float> inputPeak { 0.0f };
     std::atomic<float> outputPeak { 0.0f };
+    // The packet rate currently selected by the experimental stream path.
+    // This is published for the editor without taking an audio-thread lock.
+    std::atomic<float> streamBitrateKbps { 0.0f };
 
     // Public by design: editor controls and host integrations attach to this.
     juce::AudioProcessorValueTreeState parameters;
@@ -86,15 +93,18 @@ public:
 private:
     static constexpr int maxChannels = 2;
     static constexpr int dryDelaySamples = bf::Engine::latencySamples();
+    static constexpr int streamDelaySamples = static_cast<int> (rit::block);
     static constexpr double parameterSmoothingSeconds = 0.005;
 
     static juce::AudioProcessor::BusesProperties makeBusesProperties();
 
     static bool isKnownParameterID (juce::StringRef id) noexcept;
     bool isValidStateXml (const juce::XmlElement& xml) const noexcept;
+    bool isValidLegacyStateXml (const juce::XmlElement& xml) const noexcept;
 
     static float finiteClamped (float value, float fallback, float minimum, float maximum) noexcept;
     static int finiteIntClamped (float value, int fallback, int minimum, int maximum) noexcept;
+    static unsigned streamBitrateFor (float budget, int sampleRate, int channels) noexcept;
 
     float readParameter (const std::atomic<float>* parameter, float fallback,
                          float minimum, float maximum) const noexcept;
@@ -106,12 +116,20 @@ private:
     void processAudio (juce::AudioBuffer<float>&, juce::MidiBuffer&, bool forceBypass) noexcept;
 
     std::unique_ptr<bf::Engine> engine;
+    std::unique_ptr<rit::Streaming> stream;
     int preparedChannels = 2;
     int preparedSampleRate = 0;
     bool prepared = false;
     std::uint64_t samplePosition = 0;
 
     std::array<std::array<float, dryDelaySamples>, maxChannels> dryDelay {};
+    std::array<std::array<float, streamDelaySamples>, maxChannels> streamDelay {};
+    unsigned configuredStreamBitrate = 0;
+    std::uint64_t streamPosition = 0;
+    int streamWarmSamples = 0;
+    int streamFadeSamples = 1;
+    float streamMix = 0.0f;
+    bool streamRunning = false;
 
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> budgetSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> competitionSmoother;
@@ -131,7 +149,7 @@ private:
     std::atomic<float>* mixParameter = nullptr;
     std::atomic<float>* outputParameter = nullptr;
     std::atomic<float>* bypassParameter = nullptr;
+    std::atomic<float>* bitstreamParameter = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RitualAudioProcessor)
 };
-

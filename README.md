@@ -9,8 +9,9 @@ and a JUCE 9.0.2 plugin project targeting **VST3** and **Audio Unit (AU)**. It i
 currently an effect prototype; its Budget remains an artistic control, not kbps.
 A separate experimental `ritual-stream` CLI now encodes and decodes actual `.rit`
 files with an explicit byte budget. See [the bitstream experiment](docs/BITSTREAM.md)
-for commands, the versioned format, tests and limitations. It is not integrated
-into the plugin yet and does not duplicate the existing engine's sound.
+for commands, the versioned format, tests and limitations. The header's CODEC button enables this experimental path in the plugin. Classic
+remains the default; RIT has a different sound and currently supports Budget, Mix,
+Output and Bypass. Both modes retain 256 samples of latency.
 
 ![Ritual Codec plugin interface](docs/plugin-preview.png)
 
@@ -44,6 +45,10 @@ The sidebar overlays the original and processed spectra to show spectral change.
 Numeric controls use bundled IBM Plex Mono.
 
 ## Controls
+
+These descriptions apply to Classic mode. In RIT mode, Budget selects packet
+size; only Budget, Mix, Output and Bypass are active. The header CODEC button
+switches modes and RIT displays its actual packet bitrate.
 
 | Control | Behavior |
 |---|---|
@@ -128,8 +133,8 @@ The interface and sound are experimental. Listen before relying on presets in
 productions; future algorithm versions will need explicit preset compatibility.
 
 Possible next steps: independent band clocks, a dedicated low-band path, separate
-attack-rescue and decay controls, and integration of the experimental bitstream
-after listening and streaming validation. The current plugin Punch implementation
+attack-rescue and decay controls, and artistic controls for the opt-in bitstream
+after listening validation. The Classic plugin Punch implementation
 uses original PCM during attacks, so its preservation is not free compression.
 
 ## License

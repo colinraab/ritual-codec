@@ -619,6 +619,13 @@ RitualAudioProcessorEditor::RitualAudioProcessorEditor (RitualAudioProcessor& p)
     statusLabel.setJustificationType (juce::Justification::right);
     addAndMakeVisible (statusLabel);
 
+    codecButton.setButtonText ("CODEC: CLASSIC");
+    codecButton.setClickingTogglesState (true);
+    codecButton.setTooltip ("Switch to the experimental Ritual bitstream. Budget sets the packet budget; Mix, Output and Bypass remain active. Other controls and classic presets are inactive in this mode.");
+    addAndMakeVisible (codecButton);
+    codecAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        ritualProcessor.parameters, "bitstream", codecButton);
+
     spectralHeading.setText ("SPECTRAL DAMAGE", juce::dontSendNotification);
     timingHeading.setText ("TIME + OUTPUT", juce::dontSendNotification);
     for (auto* heading : { &spectralHeading, &timingHeading })
@@ -897,16 +904,34 @@ void RitualAudioProcessorEditor::applyPreset (int presetIndex)
 
 void RitualAudioProcessorEditor::refreshPresetIndicator()
 {
+    if (ritualProcessor.parameters.getRawParameterValue ("bitstream")->load() >= 0.5f)
+    {
+        presetStatusLabel.setText ("RIT EXP", juce::dontSendNotification);
+        return;
+    }
     if (activePreset >= 0 && ! presetMatches (presets[(size_t) activePreset]))
     {
         activePreset = -1;
         presetStatusLabel.setText ("CUSTOM", juce::dontSendNotification);
         presetStatusLabel.setColour (juce::Label::textColourId, copperBrightColour);
     }
+    presetStatusLabel.setText (activePreset >= 0 ? presets[(size_t) activePreset].name : "CUSTOM",
+                              juce::dontSendNotification);
 }
 
 void RitualAudioProcessorEditor::updateMetersAndStatus()
 {
+    const bool streaming = ritualProcessor.parameters.getRawParameterValue ("bitstream")->load() >= 0.5f;
+    codecButton.setButtonText (streaming ? "CODEC: RIT" : "CODEC: CLASSIC");
+    for (size_t i = 1; i <= 6; ++i)
+    {
+        controlSliders[i]->setEnabled (! streaming);
+        controlLabels[i].setAlpha (streaming ? 0.4f : 1.0f);
+    }
+    for (auto& button : presetButtons) button.setEnabled (! streaming);
+    budgetSlider.setTooltip (streaming
+        ? "Encoded packet budget. Actual kbps is shown in the header and depends on sample rate. Transient energy and sparse attacks are carried in the packets."
+        : "Spectral precision budget: lower values create stronger digital artifacts.");
     if (meter != nullptr)
     {
         meter->setLevels (ritualProcessor.inputPeak.load (std::memory_order_relaxed),
@@ -914,7 +939,8 @@ void RitualAudioProcessorEditor::updateMetersAndStatus()
     }
 
     const bool bypassed = ritualProcessor.parameters.getRawParameterValue ("bypass")->load() >= 0.5f;
-    statusLabel.setText (bypassed ? "BYPASSED / LATENCY ALIGNED" : "LIVE / SPECTRAL DAMAGE",
+    statusLabel.setText (bypassed ? "BYPASSED / LATENCY ALIGNED" :
+                        streaming ? "RIT / " + juce::String (ritualProcessor.streamBitrateKbps.load (std::memory_order_relaxed), 1) + " kbps" : "LIVE / SPECTRAL DAMAGE",
                          juce::dontSendNotification);
     statusLabel.setColour (juce::Label::textColourId,
                            bypassed ? mutedTextColour : accentBrightColour);
@@ -1094,6 +1120,7 @@ void RitualAudioProcessorEditor::rebuildTextureMask()
         }
     }
     for (auto& button : presetButtons) add (button.getBounds().toFloat().reduced (1.0f));
+    add (codecButton.getBounds().toFloat().reduced (1.0f));
     add (bypassButton.getBounds().toFloat().withSizeKeepingCentre
           (static_cast<float> (bypassButton.getWidth()) - 10.0f, 34.0f));
     // Meter graphics occupy just the top section; the analyzer has its own bounds.
@@ -1146,6 +1173,7 @@ void RitualAudioProcessorEditor::resized()
     subtitleLabel.setBounds (header.getX() + 15, header.getY() + 49,
                              juce::jmax (180, header.getWidth() - 410), 20);
     statusLabel.setBounds (header.getRight() - 238, header.getY() + 55, 226, 18);
+    codecButton.setBounds (header.getRight() - 140, header.getY() + 8, 128, 24);
 
     auto footer = content.removeFromBottom (50);
     latencyLabel.setBounds (footer.getX(), footer.getCentreY() - 10,

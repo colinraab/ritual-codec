@@ -19,10 +19,37 @@ constexpr int defaultDownsample = 1;
 constexpr float defaultMix = 1.0f;
 constexpr float defaultOutput = 0.0f;
 constexpr bool defaultBypass = false;
+constexpr bool defaultBitstream = false;
+constexpr unsigned streamVersion = 2;
 
 bool isFiniteRate (double rate) noexcept
 {
     return std::isfinite (rate) && rate >= 8000.0 && rate <= 192000.0;
+}
+
+unsigned ceilUnsigned (double value) noexcept
+{
+    if (! std::isfinite (value) || value <= 1.0)
+        return 1u;
+
+    const auto rounded = std::ceil (value);
+    if (rounded >= static_cast<double> (std::numeric_limits<unsigned>::max()))
+        return std::numeric_limits<unsigned>::max();
+
+    return static_cast<unsigned> (rounded);
+}
+
+float actualBitrateKbps (unsigned requested, int sampleRate) noexcept
+{
+    if (requested == 0 || sampleRate <= 0)
+        return 0.0f;
+
+    const auto packetBytes = static_cast<unsigned> (static_cast<std::uint64_t> (requested)
+                                                    * 1000u * rit::block
+                                                    / (8u * static_cast<unsigned> (sampleRate)));
+    return static_cast<float> (static_cast<double> (packetBytes) * 8.0
+                               * static_cast<double> (sampleRate)
+                               / (1000.0 * static_cast<double> (rit::block)));
 }
 }
 
@@ -71,6 +98,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout RitualAudioProcessor::create
         NormalisableRange<float> { -24.0f, 12.0f }, defaultOutput));
     layout.add (std::make_unique<AudioParameterBool> (
         ParameterID { bypassParameterID, parameterVersion }, "Bypass", defaultBypass));
+    // Keep this experiment at the end of the layout so the ten established
+    // parameters retain their ordering and host automation identities.
+    layout.add (std::make_unique<AudioParameterBool> (
+        ParameterID { bitstreamParameterID, bitstreamParameterVersion },
+        "RIT Bitstream", defaultBitstream));
 
     return layout;
 }
@@ -89,6 +121,7 @@ RitualAudioProcessor::RitualAudioProcessor()
     mixParameter          = parameters.getRawParameterValue (mixParameterID);
     outputParameter       = parameters.getRawParameterValue (outputParameterID);
     bypassParameter       = parameters.getRawParameterValue (bypassParameterID);
+    bitstreamParameter    = parameters.getRawParameterValue (bitstreamParameterID);
 
     // The latency is fixed by bf::Engine::N and remains present while bypassed
     // so that host compensation never changes as the bypass parameter moves.
@@ -122,6 +155,18 @@ void RitualAudioProcessor::prepareToPlay (double sampleRate, int maximumExpected
 
     for (auto& channel : dryDelay)
         channel.fill (0.0f);
+
+    for (auto& channel : streamDelay)
+        channel.fill (0.0f);
+
+    stream.reset();
+    configuredStreamBitrate = 0;
+    streamPosition = 0;
+    streamWarmSamples = 0;
+    streamFadeSamples = 1;
+    streamMix = 0.0f;
+    streamRunning = false;
+    streamBitrateKbps.store (0.0f, std::memory_order_relaxed);
 
     spectrumTap.prepare (getSampleRate());
     inputPeak.store (0.0f, std::memory_order_relaxed);
@@ -170,6 +215,29 @@ void RitualAudioProcessor::prepareToPlay (double sampleRate, int maximumExpected
             // Keep a deterministic delayed-dry fallback instead of failing audio.
             engine.reset();
         }
+
+        try
+        {
+            const auto budget = readParameter (budgetParameter, defaultBudget, 0.0f, 1.0f);
+            const auto bitrate = streamBitrateFor (budget, roundedRate, channelCount);
+            stream = std::make_unique<rit::Streaming> (roundedRate, channelCount,
+                                                        bitrate, streamVersion);
+            configuredStreamBitrate = bitrate;
+            streamBitrateKbps.store (actualBitrateKbps (bitrate, roundedRate),
+                                     std::memory_order_relaxed);
+            const auto fade = std::llround (sampleRate * parameterSmoothingSeconds);
+            streamFadeSamples = juce::jmax (1, static_cast<int> (juce::jlimit<std::int64_t> (
+                1, std::numeric_limits<int>::max(), fade)));
+        }
+        catch (...)
+        {
+            // The experimental path is optional.  A host probing an unusual
+            // rate or a codec implementation that rejects its packet budget
+            // continues to receive the established spectral effect.
+            stream.reset();
+            configuredStreamBitrate = 0;
+            streamBitrateKbps.store (0.0f, std::memory_order_relaxed);
+        }
     }
 
     // Even if the engine could not be constructed, processBlock remains safe and
@@ -180,6 +248,7 @@ void RitualAudioProcessor::prepareToPlay (double sampleRate, int maximumExpected
 void RitualAudioProcessor::releaseResources()
 {
     engine.reset();
+    stream.reset();
     prepared = false;
     preparedSampleRate = 0;
     samplePosition = 0;
@@ -187,8 +256,19 @@ void RitualAudioProcessor::releaseResources()
     for (auto& channel : dryDelay)
         channel.fill (0.0f);
 
+    for (auto& channel : streamDelay)
+        channel.fill (0.0f);
+
+    configuredStreamBitrate = 0;
+    streamPosition = 0;
+    streamWarmSamples = 0;
+    streamFadeSamples = 1;
+    streamMix = 0.0f;
+    streamRunning = false;
+
     inputPeak.store (0.0f, std::memory_order_relaxed);
     outputPeak.store (0.0f, std::memory_order_relaxed);
+    streamBitrateKbps.store (0.0f, std::memory_order_relaxed);
 }
 
 bool RitualAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -303,6 +383,8 @@ void RitualAudioProcessor::processAudio (juce::AudioBuffer<float>& buffer,
         channelData[static_cast<size_t> (channel)] = buffer.getWritePointer (channel);
 
     std::array<float, maxChannels> sample {};
+    std::array<float, maxChannels> streamWet {};
+    std::array<float, maxChannels> streamAligned {};
     std::array<float, maxChannels> drySample {};
     float blockInputPeak = 0.0f;
     float blockOutputPeak = 0.0f;
@@ -341,6 +423,76 @@ void RitualAudioProcessor::processAudio (juce::AudioBuffer<float>& buffer,
         const int clock = readIntegerParameter (clockParameter, defaultClock, 1, 64);
         const int downsample = readIntegerParameter (downsampleParameter, defaultDownsample, 1, 32);
         const bool bypass = forceBypass || readBoolParameter (bypassParameter, defaultBypass);
+        const bool wantsStream = readBoolParameter (bitstreamParameter, defaultBitstream);
+
+        // Start the experimental path on the audio thread without allocating.
+        // It is warmed for the two 128-sample stages (codec plus alignment)
+        // before the crossfade can expose it at the fixed plugin latency.
+        if (wantsStream && ! streamRunning && stream != nullptr)
+        {
+            stream->reset();
+            for (auto& channel : streamDelay)
+                channel.fill (0.0f);
+            streamPosition = 0;
+            streamWarmSamples = dryDelaySamples;
+            streamMix = 0.0f;
+            streamRunning = true;
+        }
+
+        if (streamRunning && stream != nullptr)
+        {
+            const auto requestedBitrate = streamBitrateFor (budget, preparedSampleRate,
+                                                             channels);
+            // Streaming::setBitrate resets its fixed packet state.  Apply
+            // automation at a packet boundary so a moving budget cannot
+            // repeatedly erase the in flight block on every sample.
+            if (requestedBitrate != configuredStreamBitrate
+                && (streamPosition % rit::block) == 0
+                && stream->setBitrate (requestedBitrate))
+            {
+                configuredStreamBitrate = requestedBitrate;
+                streamBitrateKbps.store (actualBitrateKbps (requestedBitrate,
+                                                            preparedSampleRate),
+                                         std::memory_order_relaxed);
+                for (auto& channel : streamDelay)
+                    channel.fill (0.0f);
+            }
+
+            // The stream API accepts interleaved samples.  Calling it with one
+            // sample keeps this wrapper independent of the host block size and
+            // avoids a callback-time scratch allocation.
+            stream->process (sample.data(), streamWet.data(), 1);
+            const auto streamDelayIndex = static_cast<size_t> (
+                streamPosition & static_cast<std::uint64_t> (streamDelaySamples - 1));
+            for (int channel = 0; channel < channels; ++channel)
+            {
+                const auto channelIndex = static_cast<size_t> (channel);
+                streamAligned[channelIndex] = streamDelay[channelIndex][streamDelayIndex];
+                streamDelay[channelIndex][streamDelayIndex] = streamWet[channelIndex];
+            }
+            ++streamPosition;
+
+            if (streamWarmSamples > 0)
+                --streamWarmSamples;
+            else
+            {
+                const auto target = wantsStream ? 1.0f : 0.0f;
+                const auto step = 1.0f / static_cast<float> (juce::jmax (1, streamFadeSamples));
+                if (streamMix < target)
+                    streamMix = juce::jmin (target, streamMix + step);
+                else if (streamMix > target)
+                    streamMix = juce::jmax (target, streamMix - step);
+
+                if (! wantsStream && streamMix <= 0.0f)
+                {
+                    streamRunning = false;
+                    stream->reset();
+                    streamPosition = 0;
+                    for (auto& channel : streamDelay)
+                        channel.fill (0.0f);
+                }
+            }
+        }
 
         if (engine != nullptr)
         {
@@ -364,13 +516,21 @@ void RitualAudioProcessor::processAudio (juce::AudioBuffer<float>& buffer,
         {
             const auto channelIndex = static_cast<size_t> (channel);
             const float dry = drySample[channelIndex];
-            float value = dry;
+            float classicValue = dry;
 
             if (engine != nullptr && ! bypass)
             {
                 const float wet = std::isfinite (sample[channelIndex]) ? sample[channelIndex] : dry;
-                value = (dry + (wet - dry) * mix) * outputGain;
+                classicValue = (dry + (wet - dry) * mix) * outputGain;
             }
+
+            const float streamValue = (dry
+                                       + (std::isfinite (streamAligned[channelIndex])
+                                              ? streamAligned[channelIndex] - dry
+                                              : 0.0f) * mix) * outputGain;
+            float value = classicValue + (streamValue - classicValue) * streamMix;
+            if (bypass)
+                value = dry;
 
             if (! std::isfinite (value))
                 value = 0.0f;
@@ -419,8 +579,35 @@ void RitualAudioProcessor::setStateInformation (const void* data, int sizeInByte
     try
     {
         auto xml = getXmlFromBinary (data, sizeInBytes);
-        if (xml == nullptr || ! isValidStateXml (*xml))
+        if (xml == nullptr || ! xml->hasTagName ("PARAMETERS"))
             return;
+
+        // Version 1 states predate the optional stream mode and contain the
+        // original ten parameters.  Validate them against the old shape, then
+        // append an explicit false bitstream parameter before replacing APVTS
+        // state so every restored tree has the current eleven-parameter shape.
+        const int sourceVersion = xml->hasAttribute ("stateVersion")
+                                    ? xml->getIntAttribute ("stateVersion", -1)
+                                    : 1;
+        if (sourceVersion == 1)
+        {
+            if (! isValidLegacyStateXml (*xml))
+                return;
+
+            if (auto* bitstream = xml->createNewChildElement ("PARAM"))
+            {
+                bitstream->setAttribute ("id", bitstreamParameterID);
+                bitstream->setAttribute ("value", 0.0);
+            }
+            else
+            {
+                return;
+            }
+        }
+        else if (sourceVersion != stateVersion || ! isValidStateXml (*xml))
+        {
+            return;
+        }
 
         const auto state = juce::ValueTree::fromXml (*xml);
         if (state.isValid() && state.hasType ("PARAMETERS"))
@@ -444,7 +631,8 @@ bool RitualAudioProcessor::isKnownParameterID (juce::StringRef id) noexcept
         || id == juce::StringRef (downsampleParameterID)
         || id == juce::StringRef (mixParameterID)
         || id == juce::StringRef (outputParameterID)
-        || id == juce::StringRef (bypassParameterID);
+        || id == juce::StringRef (bypassParameterID)
+        || id == juce::StringRef (bitstreamParameterID);
 }
 
 bool RitualAudioProcessor::isValidStateXml (const juce::XmlElement& xml) const noexcept
@@ -452,11 +640,11 @@ bool RitualAudioProcessor::isValidStateXml (const juce::XmlElement& xml) const n
     if (! xml.hasTagName ("PARAMETERS"))
         return false;
 
-    if (xml.hasAttribute ("stateVersion")
-        && xml.getIntAttribute ("stateVersion", -1) != stateVersion)
+    if (! xml.hasAttribute ("stateVersion")
+        || xml.getIntAttribute ("stateVersion", -1) != stateVersion)
         return false;
 
-    if (xml.getNumChildElements() != 10)
+    if (xml.getNumChildElements() != 11)
         return false;
 
     for (auto* child = xml.getFirstChildElement(); child != nullptr; child = child->getNextElement())
@@ -471,6 +659,47 @@ bool RitualAudioProcessor::isValidStateXml (const juce::XmlElement& xml) const n
         // Reject duplicate parameter entries.  APVTS otherwise accepts the
         // first/last one depending on listener timing, which is not stable.
         for (auto* previous = xml.getFirstChildElement(); previous != child; previous = previous->getNextElement())
+            if (previous->hasTagName ("PARAM")
+                && previous->getStringAttribute ("id") == id)
+                return false;
+
+        const auto value = child->getDoubleAttribute (
+            "value", std::numeric_limits<double>::quiet_NaN());
+        if (! std::isfinite (value))
+            return false;
+
+        const auto range = parameters.getParameterRange (id);
+        if (! std::isfinite (static_cast<double> (range.start))
+            || ! std::isfinite (static_cast<double> (range.end))
+            || value < static_cast<double> (range.start)
+            || value > static_cast<double> (range.end))
+            return false;
+    }
+
+    return true;
+}
+
+bool RitualAudioProcessor::isValidLegacyStateXml (const juce::XmlElement& xml) const noexcept
+{
+    if (! xml.hasTagName ("PARAMETERS") || xml.getNumChildElements() != 10)
+        return false;
+
+    if (xml.hasAttribute ("stateVersion")
+        && xml.getIntAttribute ("stateVersion", -1) != 1)
+        return false;
+
+    for (auto* child = xml.getFirstChildElement(); child != nullptr; child = child->getNextElement())
+    {
+        if (! child->hasTagName ("PARAM"))
+            return false;
+
+        const auto id = child->getStringAttribute ("id");
+        if (! isKnownParameterID (id) || id == juce::StringRef (bitstreamParameterID)
+            || ! child->hasAttribute ("value"))
+            return false;
+
+        for (auto* previous = xml.getFirstChildElement(); previous != child;
+             previous = previous->getNextElement())
             if (previous->hasTagName ("PARAM")
                 && previous->getStringAttribute ("id") == id)
                 return false;
@@ -507,6 +736,32 @@ int RitualAudioProcessor::finiteIntClamped (float value, int fallback,
     value = finiteClamped (value, static_cast<float> (fallback),
                            static_cast<float> (minimum), static_cast<float> (maximum));
     return juce::jlimit (minimum, maximum, juce::roundToInt (value));
+}
+
+unsigned RitualAudioProcessor::streamBitrateFor (float budget, int sampleRate,
+                                                 int channels) noexcept
+{
+    if (sampleRate < 8000 || sampleRate > 192000 || channels < 1 || channels > maxChannels)
+        return 0;
+
+    // A packet contains a six-byte packet header and one five-byte channel
+    // header plus at least one 15-bit record per channel.  Derive the minimum
+    // from that overhead so every rate/channel layout remains decodable.
+    const auto minimumPacketBytes = 6u + static_cast<unsigned> (channels) * 7u;
+    const auto minimum = ceilUnsigned (static_cast<double> (minimumPacketBytes)
+                                       * 8.0 * static_cast<double> (sampleRate)
+                                       / (1000.0 * static_cast<double> (rit::block)));
+    if (minimum == 0)
+        return 0;
+
+    // Keep the control useful across sample rates.  384 kbps is the upper
+    // end at 48 kHz, while high-rate sessions scale the range with the valid
+    // packet overhead instead of falling below the format's minimum.
+    const auto maximum = std::max (384u, minimum * 4u);
+    const auto amount = finiteClamped (budget, defaultBudget, 0.0f, 1.0f);
+    const auto value = static_cast<double> (minimum)
+                     + static_cast<double> (maximum - minimum) * amount;
+    return juce::jlimit (minimum, maximum, ceilUnsigned (value));
 }
 
 float RitualAudioProcessor::readParameter (const std::atomic<float>* parameter,

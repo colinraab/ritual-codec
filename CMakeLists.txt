@@ -171,6 +171,10 @@ if(RITUAL_BUILD_TESTS)
     target_include_directories(ritual-stream-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_compile_features(ritual-stream-test PRIVATE cxx_std_17)
     add_test(NAME ritual-stream COMMAND ritual-stream-test)
+    add_executable(ritual-streaming-test tests/test_rit_streaming.cpp)
+    target_include_directories(ritual-streaming-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_compile_features(ritual-streaming-test PRIVATE cxx_std_17)
+    add_test(NAME ritual-streaming COMMAND ritual-streaming-test)
     # The engine test has no dependency on the CLI, but uses a separate target so the
     # RITUAL_BUILD_CLI option remains independent as documented.
     add_executable(ritual-codec-engine-test tests/test_engine.cpp)

@@ -14,7 +14,7 @@ int main()try{
   for(float x:d.samples)rit::require(std::isfinite(x),"Nonfinite decode");
   for(size_t n=0;n+128<=length;n+=128)for(unsigned c=0;c<channels;++c){double in=0,out=0;for(size_t j=0;j<128;++j){const double x=a.samples[(n+j)*channels+c],y=d.samples[(n+j)*channels+c];in+=x*x;out+=y*y;}rit::require(std::abs(std::sqrt(in/128)-std::sqrt(out/128))<4.0/65535,"Block RMS not preserved");}
   for(size_t cut=0;cut<b.size();cut+=17)rejects(rit::Bytes(b.begin(),b.begin()+static_cast<std::ptrdiff_t>(cut)));
-  auto bad=b;bad.push_back(0);rejects(bad);bad=b;bad.back()^=1;rejects(bad);bad=b;bad[4]=2;rejects(bad);
+  auto bad=b;bad.push_back(0);rejects(bad);bad=b;bad.back()^=1;rejects(bad);bad=b;bad[4]=3;rejects(bad);
  }
  rit::Audio silence{48000,2,std::vector<float>(512)};auto d=rit::decode(rit::encode(silence,96));for(float x:d.samples)rit::require(x==0,"Silence produced output");
  for(unsigned offset=0;offset<rit::block;++offset){rit::Audio impulse{48000,1,std::vector<float>(128)};impulse.samples[offset]=.8f;const auto decoded=rit::decode(rit::encode(impulse,96));double energy=0;for(float x:decoded.samples)energy+=static_cast<double>(x)*x;rit::require(std::abs(energy-.64)<.001,"Impulse energy lost");}

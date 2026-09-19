@@ -11,7 +11,7 @@ Track evidence or relevant commits beside completed items. Making the repository
 - [x] Review source-license compatibility with pinned JUCE under AGPLv3. See LICENSE_ASSET_AUDIT.md; binary distribution follow-up remains below.
 - [x] Inspect included font licenses and music license/provenance. See LICENSE_ASSET_AUDIT.md for evidence and scope.
 - [ ] Decide whether AGPL fits future commercial plans and how outside contributions will be accepted.
-- [ ] Describe the current engine accurately: an experimental degradation effect inspired by lossy codecs, not yet a compressed-bitstream encoder. Budget is an effect parameter, not a measured bitrate.
+- [x] Distinguish Classic degradation from the experimental real bitstream in README and BITSTREAM.md. Classic Budget is artistic; RIT Budget maps to a byte budget with packet kbps displayed.
 - [ ] Make the README useful to a new user: screenshot, audio demo, parameters, formats/platforms, build/install instructions, fixed latency, and limitations.
 - [ ] Verify a fresh checkout builds on macOS using only documented instructions, with no workspace-specific or cached dependencies.
 - [ ] Run tests and AU validation; smoke-test playback, automation, bypass, presets, session save/reopen, multiple instances, and editor open/close in a DAW.
@@ -25,7 +25,8 @@ Track evidence or relevant commits beside completed items. Making the repository
 - [x] Capture a clean Linux build and reproducible pre-bitstream audio baseline. See BASELINE.md and reports/baseline.json. Offline JUCE override used; Mac/AU remains unchecked.
 - [ ] Implement the real experimental Ritual bitstream before initial public release (owner decision, 2026-09-17).
   - [x] First independent CLI encoder/decoder, versioned `.rit` packets, actual bitrate reporting, bounded parser and regression tests. See BITSTREAM.md.
-  - [ ] Listening approval, temporal/stereo refinement, streaming implementation and plugin integration.
+  - [ ] Owner listening approval and temporal/stereo refinement; block discontinuities remain a known limitation.
+  - [x] Fixed-storage streaming implementation and opt-in plugin integration. Linux tests and sanitizer evidence: reports/bitstream-streaming-validation.json. Mac/AU remains unverified.
 
 ## Before distributing binaries
 

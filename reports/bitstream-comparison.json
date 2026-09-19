@@ -1,0 +1,146 @@
+{
+  "sample_rate": 48000,
+  "music_seconds": 8.0,
+  "normalization": "One common source attenuation; no per-output normalization. Float32 WAV.",
+  "order": [
+    {
+      "file": "01-source.wav",
+      "start_seconds": 0
+    },
+    {
+      "file": "02-classic-damaged.wav",
+      "start_seconds": 8.5
+    },
+    {
+      "file": "rit-v1-96.wav",
+      "start_seconds": 17.0
+    },
+    {
+      "file": "rit-v1-128.wav",
+      "start_seconds": 25.5
+    },
+    {
+      "file": "rit-v1-256.wav",
+      "start_seconds": 34.0
+    },
+    {
+      "file": "rit-v2-96.wav",
+      "start_seconds": 42.5
+    },
+    {
+      "file": "rit-v2-128.wav",
+      "start_seconds": 51.0
+    },
+    {
+      "file": "rit-v2-256.wav",
+      "start_seconds": 59.5
+    }
+  ],
+  "measurements": {
+    "01-source.wav": {
+      "peak": 0.4961700439453125,
+      "rms_dbfs": -18.070926617640872,
+      "boundary_difference_rms": 0.026115179570479784,
+      "interior_difference_rms": 0.025052946295878356,
+      "finite": true
+    },
+    "02-classic-damaged.wav": {
+      "peak": 0.4998289942741394,
+      "rms_dbfs": -18.099471532265255,
+      "boundary_difference_rms": 0.022762261216412973,
+      "interior_difference_rms": 0.023278866200629286,
+      "finite": true
+    },
+    "rit-v1-96.wav": {
+      "peak": 0.4897289276123047,
+      "rms_dbfs": -18.070930996702593,
+      "boundary_difference_rms": 0.044068999783358424,
+      "interior_difference_rms": 0.01179402418963266,
+      "finite": true,
+      "bytes": 96024,
+      "version": 1,
+      "requested_kbps": 96,
+      "file_kbps": 96.024,
+      "frame_samples": 128,
+      "stream_sha256": "0fc437f2600ca8a3ace8b09653041d7401f70f586cb3fed15cc2ead6698e12f5"
+    },
+    "rit-v1-128.wav": {
+      "peak": 0.4701177775859833,
+      "rms_dbfs": -18.07093099724749,
+      "boundary_difference_rms": 0.03979242340194481,
+      "interior_difference_rms": 0.014223819818906002,
+      "finite": true,
+      "bytes": 126024,
+      "version": 1,
+      "requested_kbps": 128,
+      "file_kbps": 126.024,
+      "frame_samples": 128,
+      "stream_sha256": "94dd51a4f4d5d88720b14f2355ec488addfc89a06bf4da0a887c4de81988c14c"
+    },
+    "rit-v1-256.wav": {
+      "peak": 0.48443683981895447,
+      "rms_dbfs": -18.07093099722225,
+      "boundary_difference_rms": 0.03442727895531335,
+      "interior_difference_rms": 0.020237793040095126,
+      "finite": true,
+      "bytes": 255024,
+      "version": 1,
+      "requested_kbps": 256,
+      "file_kbps": 255.024,
+      "frame_samples": 128,
+      "stream_sha256": "246e233e9e2e949d7b802447a9faf62b1af2aeb4250b0d05abb8b956175db662"
+    },
+    "rit-v2-96.wav": {
+      "peak": 0.4897289276123047,
+      "rms_dbfs": -18.070930996702593,
+      "boundary_difference_rms": 0.044068999783358424,
+      "interior_difference_rms": 0.01179402418963266,
+      "finite": true,
+      "bytes": 96024,
+      "version": 2,
+      "requested_kbps": 96,
+      "file_kbps": 96.024,
+      "frame_samples": 128,
+      "stream_sha256": "47cf4ff501f60b52097eeb4215cce27850e853de00efba309e1df62950e03adb"
+    },
+    "rit-v2-128.wav": {
+      "peak": 0.4701177775859833,
+      "rms_dbfs": -18.07093099724749,
+      "boundary_difference_rms": 0.03979242340194481,
+      "interior_difference_rms": 0.014223819818906002,
+      "finite": true,
+      "bytes": 126024,
+      "version": 2,
+      "requested_kbps": 128,
+      "file_kbps": 126.024,
+      "frame_samples": 128,
+      "stream_sha256": "2aefd2a2af5ce6dcd6d6da8d4b487a8e9be3b1bf1d9833c507684e0a09f1836f"
+    },
+    "rit-v2-256.wav": {
+      "peak": 0.48443683981895447,
+      "rms_dbfs": -18.070930997207675,
+      "boundary_difference_rms": 0.034603130358351886,
+      "interior_difference_rms": 0.02024044448120995,
+      "finite": true,
+      "bytes": 255024,
+      "version": 2,
+      "requested_kbps": 256,
+      "file_kbps": 255.024,
+      "frame_samples": 128,
+      "stream_sha256": "203791b73f61dc330bea15d00afe5c18fecb442f3a35cae704fc98d001f50801"
+    },
+    "impulses-v1": {
+      "minimum_peak_ratio": 0.41332077234983444,
+      "median_peak_ratio": 0.41332077234983444,
+      "maximum_pre_onset_energy_ratio": 0.8300188173384518,
+      "median_pre_onset_energy_ratio": 0.41500940866922587
+    },
+    "impulses-v2": {
+      "minimum_peak_ratio": 1.0004263371229172,
+      "median_peak_ratio": 1.0004263371229172,
+      "maximum_pre_onset_energy_ratio": 0.0,
+      "median_pre_onset_energy_ratio": 0.0
+    }
+  },
+  "limitations": "Boundary differences are diagnostics, not listening scores. Impulses do not represent all drum attacks. No subjective listening approval implied."
+}

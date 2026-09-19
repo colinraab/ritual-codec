@@ -89,6 +89,7 @@ void tests() {
     }
     RitualAudioProcessor state;
     set(state,"budget",.123f);set(state,"clock",17);set(state,"output",-7.3f);set(state,"bypass",1);
+    set(state,"bitstream",1);
     juce::MemoryBlock bytes;state.getStateInformation(bytes);
     RitualAudioProcessor restored;restored.setStateInformation(bytes.getData(),static_cast<int>(bytes.getSize()));
     for(auto* parameter:state.getParameters()) {
@@ -97,6 +98,8 @@ void tests() {
         auto* other=restored.parameters.getParameter(identified->paramID);
         require(other&&std::abs(other->getValue()-parameter->getValue())<1e-6f,"State roundtrip mismatch");
     }
+    require(restored.parameters.getRawParameterValue("bitstream")->load() >= 0.5f,
+            "Bitstream state did not roundtrip");
     const auto before=restored.parameters.getRawParameterValue("budget")->load();
     restored.setStateInformation("garbage",7);
     require(exactlyEqual(restored.parameters.getRawParameterValue("budget")->load(),before),"Invalid state changed values");
@@ -104,6 +107,91 @@ void tests() {
     juce::MemoryBlock invalidBytes;juce::AudioProcessor::copyXmlToBinary(invalid,invalidBytes);
     restored.setStateInformation(invalidBytes.getData(),static_cast<int>(invalidBytes.getSize()));
     require(exactlyEqual(restored.parameters.getRawParameterValue("budget")->load(),before),"Incomplete state changed values");
+
+    // A complete pre-bitstream state is migrated by appending an explicit
+    // false stream flag.  This also covers hosts that omitted stateVersion
+    // from the original ten-parameter tree.
+    RitualAudioProcessor legacySource;
+    set(legacySource, "budget", .31f);
+    auto legacyXml = legacySource.parameters.copyState().createXml();
+    require(legacyXml != nullptr, "Could not create legacy source state");
+    require(legacyXml->getNumChildElements() == 11, "Unexpected current state shape");
+    // Remove the actual bitstream child regardless of APVTS child ordering.
+    for (int index = legacyXml->getNumChildElements() - 1; index >= 0; --index)
+    {
+        if (auto* child = legacyXml->getChildElement (index);
+            child != nullptr && child->getStringAttribute ("id") == "bitstream")
+            legacyXml->removeChildElement (child, true);
+    }
+    legacyXml->setAttribute ("stateVersion", 1);
+    juce::MemoryBlock legacyBytes;
+    juce::AudioProcessor::copyXmlToBinary (*legacyXml, legacyBytes);
+    RitualAudioProcessor legacyRestored;
+    legacyRestored.setStateInformation (legacyBytes.getData(), static_cast<int> (legacyBytes.getSize()));
+    require(legacyRestored.parameters.getRawParameterValue ("bitstream")->load() < 0.5f,
+            "Legacy state enabled experimental stream");
+    require(std::abs(legacyRestored.parameters.getRawParameterValue ("budget")->load() - .31f) < 1e-6f,
+            "Legacy state did not preserve parameters");
+
+    // The stream path is opt-in and keeps the established 256-sample host
+    // latency.  It must remain finite, independent of callback block size,
+    // and expose the packet rate chosen from the budget.
+    RitualAudioProcessor streamA, streamB;
+    set(streamA, "bitstream", 1.0f);
+    set(streamB, "bitstream", 1.0f);
+    prepare(streamA, 2, 48000.0);
+    prepare(streamB, 2, 48000.0);
+    std::vector<float> streamInput (8192u * 2u);
+    for (size_t frame = 0; frame < streamInput.size() / 2u; ++frame)
+    {
+        const auto x = frame == 0 ? .8f : .22f * std::sin (static_cast<float> (frame) * .021f);
+        streamInput[frame * 2u] = x;
+        streamInput[frame * 2u + 1u] = -x;
+    }
+    const auto streamOutputA = render(streamA, streamInput, 2, 127);
+    const auto streamOutputB = render(streamB, streamInput, 2, 513);
+    compare(streamOutputA, streamOutputB, 0.0f, "Bitstream depends on host block size");
+    require(streamA.streamBitrateKbps.load (std::memory_order_relaxed) > 0.0f,
+            "Experimental stream did not publish packet bitrate");
+    for (const auto value : streamOutputA)
+        require(std::isfinite (value), "Bitstream output is nonfinite");
+
+    // Once the switch has warmed and faded, the plugin must reproduce the
+    // independently decoded packets with exactly 256 samples of alignment.
+    const auto packetRate = static_cast<unsigned> (std::ceil (
+        streamA.streamBitrateKbps.load (std::memory_order_relaxed)));
+    const auto packetReference = rit::decode (rit::encode ({ 48000, 2, streamInput }, packetRate, 2));
+    for (size_t frame = 1024; frame < streamInput.size() / 2; ++frame)
+        for (size_t channel = 0; channel < 2; ++channel)
+            require (std::abs (streamOutputA[frame * 2 + channel]
+                - packetReference.samples[(frame - 256) * 2 + channel]) < 1.0e-6f,
+                "Plugin bitstream differs from independent decoder or latency");
+
+    // Automation and repeated switches must not reset output into dropouts.
+    for (int iteration = 0; iteration < 12; ++iteration)
+    {
+        set (streamA, "budget", static_cast<float> (iteration % 5) / 4.0f);
+        set (streamA, "bitstream", iteration % 3 == 0 ? 0.0f : 1.0f);
+        const auto changed = render (streamA, streamInput, 2, 31);
+        double energy = 0.0;
+        for (const auto value : changed)
+        {
+            require (std::isfinite (value), "Codec switch produced nonfinite output");
+            energy += static_cast<double> (value) * value;
+        }
+        require (energy > 0.01, "Codec automation lost audio");
+    }
+
+    RitualAudioProcessor streamDry;
+    set(streamDry, "bitstream", 1.0f);
+    set(streamDry, "mix", 0.0f);
+    prepare(streamDry, 2, 48000.0);
+    checkDelay(streamInput, render(streamDry, streamInput, 2, 127), 2);
+
+    RitualAudioProcessor streamBypass;
+    set(streamBypass, "bitstream", 1.0f);
+    prepare(streamBypass, 2, 48000.0);
+    checkDelay(streamInput, render(streamBypass, streamInput, 2, 127, true), 2);
     RitualAudioProcessor badRate;prepare(badRate,2,384000);
     std::vector<float> signal(2048);signal[0]=.5f;
     checkDelay(signal,render(badRate,signal,2,17),2);
@@ -190,7 +278,7 @@ void tests() {
             require(editor->getLocalBounds().contains(button->getBounds()),"Button outside editor");
             require(button->getWidth()>=24 && button->getHeight()>=24,"Button hit target too small");
         }
-        require(buttons==5,"Missing preset or bypass button");
+        require(buttons==6,"Missing codec, preset, or bypass button");
     }
     bool presetFound=false;
     for(auto* child:editor->getChildren()) if(auto* button=dynamic_cast<juce::TextButton*>(child)) {
@@ -209,7 +297,11 @@ int main(int argc,char** argv) try {
     juce::ScopedJuceInitialiser_GUI gui;
     tests();
     if(argc>=3&&std::string(argv[1])=="--screenshot") {
-        RitualAudioProcessor p;prepare(p,2);
+        const bool screenshotStream = argc >= 7 && std::string (argv[6]) == "rit";
+        RitualAudioProcessor p;
+        if (screenshotStream)
+            set (p, "bitstream", 1.0f);
+        prepare(p,2);
         std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
         require(editor!=nullptr,"Missing editor");
         if (argc >= 5) editor->setSize(std::stoi(argv[3]), std::stoi(argv[4]));
@@ -236,7 +328,8 @@ int main(int argc,char** argv) try {
         require(stream->setPosition(0),"Cannot rewind screenshot");
         require(stream->truncate().wasOk(),"Cannot truncate screenshot");
         juce::PNGImageFormat png;require(png.writeImageToStream(image,*stream),"PNG write failed");
-        std::cout<<"Screenshot: "<<file.getFullPathName()<<'\n';
+        std::cout<<"Screenshot (" << (screenshotStream ? "RIT" : "classic")
+                  << "): "<<file.getFullPathName()<<'\n';
     }
     return 0;
 } catch(const std::exception& e) {std::cerr<<"FAIL: "<<e.what()<<'\n';return 1;}

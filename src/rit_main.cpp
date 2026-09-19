@@ -40,14 +40,15 @@ static rit::Bytes wav(const rit::Audio& a) {
     rit::put(b,0x61746164,4);rit::put(b,a.samples.size()*4,4);for(float x:a.samples){uint32_t v;std::memcpy(&v,&x,4);rit::put(b,v,4);}return b;
 }
 int main(int argc,char** argv)try {
-    if(argc<4){std::cerr<<"Experimental Ritual bitstream v1\nritual-stream encode input.wav output.rit [kbps=128]\nritual-stream decode input.rit output.wav\n";return 1;}
+    if(argc<4){std::cerr<<"Experimental Ritual bitstream\nritual-stream encode input.wav output.rit [kbps=128] [version=2]\nritual-stream decode input.rit output.wav\n";return 1;}
     const std::string mode=argv[1];rit::require(std::string(argv[2])!=argv[3],"Input and output must differ");
     if(mode=="encode"){
-        rit::require(argc==4||argc==5,"Unexpected arguments");unsigned kbps=128;
-        if(argc==5){std::string v=argv[4];size_t end=0;const auto n=std::stoul(v,&end);rit::require(end==v.size()&&n>=1&&n<=4096,"Invalid bitrate");kbps=static_cast<unsigned>(n);}
-        const auto a=readWav(readFile(argv[2]));const auto b=rit::encode(a,kbps);writeFile(argv[3],b);
+        rit::require(argc>=4&&argc<=6,"Unexpected arguments");unsigned kbps=128,version=2;
+        if(argc>=5){std::string v=argv[4];size_t end=0;const auto n=std::stoul(v,&end);rit::require(end==v.size()&&n>=1&&n<=4096,"Invalid bitrate");kbps=static_cast<unsigned>(n);}
+        if(argc==6){const std::string v=argv[5];rit::require(v=="1"||v=="2","Unsupported version");version=v=="1"?1u:2u;}
+        const auto a=readWav(readFile(argv[2]));const auto b=rit::encode(a,kbps,version);writeFile(argv[3],b);
         const double seconds=static_cast<double>(a.samples.size())/(a.channels*a.rate);
-        std::cout<<"{\"bytes\":"<<b.size()<<",\"requested_kbps\":"<<kbps<<",\"file_kbps\":"<<static_cast<double>(b.size())*8/seconds/1000<<",\"frame_samples\":128}\n";
+        std::cout<<"{\"bytes\":"<<b.size()<<",\"version\":"<<version<<",\"requested_kbps\":"<<kbps<<",\"file_kbps\":"<<static_cast<double>(b.size())*8/seconds/1000<<",\"frame_samples\":128}\n";
     }else if(mode=="decode"){
         rit::require(argc==4,"Unexpected arguments");const auto a=rit::decode(readFile(argv[2]));writeFile(argv[3],wav(a));
         std::cout<<"{\"samples_per_channel\":"<<a.samples.size()/a.channels<<",\"sample_rate\":"<<a.rate<<"}\n";

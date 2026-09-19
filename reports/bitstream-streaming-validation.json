@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-19",
+  "platform": "Linux x86_64",
+  "compiler": "GCC 13.3, Release",
+  "checks": {
+    "cli_suites_passed": 3,
+    "plugin_suites_passed": 4,
+    "v1_music_byte_compatibility_kbps": {
+      "96": true,
+      "128": true,
+      "256": true,
+      "512": true
+    },
+    "streaming_offline_exact_match": true,
+    "streaming_callback_allocation_guard": true,
+    "asan_ubsan": "Passed; LeakSanitizer disabled for VM tracing compatibility",
+    "mac_au": "Not run",
+    "github_actions": "Not run"
+  },
+  "streaming_benchmark": {
+    "sample_rate": 48000,
+    "channels": 2,
+    "kbps": 192,
+    "callback_samples": 128,
+    "observations": 3900,
+    "mean_us": 35.524,
+    "max_us": 798.684,
+    "deadline_us": 2666.67
+  },
+  "benchmark_limitations": "One shared-VM run, core streaming only, not a host deadline guarantee or full-plugin CPU measurement."
+}

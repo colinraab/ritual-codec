@@ -79,6 +79,8 @@ private:
     juce::Slider mixSlider;
     juce::Slider outputSlider;
     juce::ToggleButton bypassButton;
+    juce::TextButton codecButton;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> codecAttachment;
 
     std::array<juce::Label, 9> controlLabels;
     std::array<juce::Slider*, 9> controlSliders {};
