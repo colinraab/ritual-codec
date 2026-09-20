@@ -7,7 +7,7 @@ Ritual Codec has four independent CMake switches:
 | `RITUAL_BUILD_CLI` | `ON` | Builds the `ritual-codec` WAV renderer. |
 | `RITUAL_BUILD_VST3` | `ON` | Builds the VST3 plug-in. |
 | `RITUAL_BUILD_AU` | `OFF` | Builds the Audio Unit on Apple platforms. |
-| `RITUAL_BUILD_TESTS` | `ON` | Builds the engine test and, the JUCE processor test when a plugin format is enabled. |
+| `RITUAL_BUILD_TESTS` | `ON` | Builds engine, bitstream and hardening tests; adds JUCE processor tests with plugins and packaging tests when Python is found. |
 
 The command-line renderer and engine test have no third-party dependencies. A
 CLI-only configure does not download or configure JUCE:
@@ -194,3 +194,10 @@ If discovery is not immediate, wait a few seconds and rerun `auval`. Open Ableto
 enable Audio Units in its Plug-Ins settings, and rescan if needed. For later
 iterations, `git pull`, rerun the build and tests, then repeat the installation
 commands with Ableton closed. Reconfigure when build options change.
+
+## Release qualification
+
+The CLI archive includes both `ritual-codec` and `ritual-stream`. See
+[PACKAGING.md](PACKAGING.md) for source/notice bundling and archive verification,
+and [RELEASE_VALIDATION.md](RELEASE_VALIDATION.md) for the platform matrix and
+local DAW checklist. No public release or notarization is implied by a build.

@@ -51,3 +51,19 @@ and future contributor agreements were not decided by this audit.
 - [Author's music catalog](https://incompetech.com/music/royalty-free/pieces.json)
 - [Author's credit generator](https://incompetech.com/music/royalty-free/licenses/)
 - [CC BY 4.0 terms](https://creativecommons.org/licenses/by/4.0/)
+
+## Packaging hardening update — 2026-09-19
+
+The packager now includes the actual CMake-configured JUCE source tree in each
+plugin source ZIP, preserving nested license/NOTICE files, embedded copyright
+statements and the SPDX inventory. The Linux VST3 fixture contained 25 separately
+named JUCE license/NOTICE/SPDX files in addition to notices embedded in source
+headers. Local overrides are identified without asserting an upstream commit
+identity. Project source is selected from explicit roots; both CLIs are included.
+
+Linux archive path/hash/permission checks and extracted CLI source reconstruction
+were exercised. This addresses the earlier source-link-only packaging gap. The
+original findings above describe the earlier revision; final Mac/Windows archives
+and any changed SDK/dependency configuration still require distribution review.
+See PACKAGING.md and reports/release-hardening.json. No independent legal
+certification or proprietary-license decision is implied.

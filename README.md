@@ -1,5 +1,8 @@
 # Ritual Codec
 
+**Unreleased experimental preview (0.2.0).** See the [changelog](CHANGELOG.md)
+and [release validation matrix](docs/RELEASE_VALIDATION.md) for tested scope.
+
 An experimental, low-latency music degradation effect. Frequency bands compete
 for spectral precision, old timbres linger, and coarse digital clocks turn tails
 into texture. **Punch** protects attacks for rhythmic material.
@@ -143,3 +146,8 @@ Source and documentation: **AGPL-3.0-or-later**, using JUCE's AGPL open-source
 option. See [LICENSE](LICENSE) and [licensing notes](LICENSE-NOTES.md).
 The CC BY 4.0 music retains its separate attribution and license. This project
 is not affiliated with JUCE or the music's creator.
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+Please keep private audio and security reports out of public issues.

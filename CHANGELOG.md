@@ -1,21 +1,21 @@
 # Changelog
 
-## 0.2.0 — development snapshot
+## 0.2.0 — unreleased experimental preview
 
-- Bundle IBM Plex Mono for numeric readouts and add an aligned stereo-energy
-  input/output spectrum display with UI-thread FFT processing.
+- Native JUCE 9.0.2 VST3 and AU effect with a textured interface and stereo
+  input/output spectrum comparison.
+- Classic spectral degradation controls, transient protection, latency-aligned
+  mix/bypass and fixed 256-sample plugin latency.
+- Independent .rit encoder/decoder CLI supporting experimental RIT1 versions 1
+  and 2; version 2 can encode sparse attacks in the time domain.
+- Opt-in RIT plugin mode with allocation-free streaming and actual packet kbps.
+  Classic is the default. Existing version-1 plugin states migrate to Classic.
+- RIT mode currently supports Budget, Mix, Output and Bypass. Other controls and
+  Classic presets are inactive there. It does not record .rit files in the DAW.
+- Bitstreams remain lossy at all rates; block-edge distortion, changed peaks and
+  stereo-image changes are possible. Format stability is not promised yet.
+- Local Linux regression and sanitizer testing completed. Latest Mac/AU, Windows
+  and DAW release validation are still pending. Builds are unsigned/unnotarized
+  unless an individual release explicitly states otherwise.
 
-- Redesign the editor with purple ink, serif typography, halftone dials, circuit
-  ornaments and segmented meters; preserve parameter IDs and preset values.
-
-- Rename the project to Ritual Codec; retain the original DSP algorithm.
-- Add a JUCE 9.0.2 effect processor and custom editor for VST3 and macOS AU.
-- Add smoothed automation, dry/wet mix, output gain, aligned bypass, state storage,
-  meters, tooltips and four starting presets.
-- Add independent CLI/plugin build options and separate artifact packaging.
-- Add processor/editor tests and Linux, Windows and macOS CI configuration.
-- Add reproducible CC BY demo retrieval, attribution and AGPL licensing files.
-
-## 0.1.0 — Bitfamine prototype
-
-- Introduce the spectral degradation engine, WAV CLI and dance-music comparisons.
+No public release has been published from this changelog entry.

@@ -1,0 +1,71 @@
+{
+  "date": "2026-09-19",
+  "head": "6482bc6c75af74e11215b0d68bdff7b110ed1634",
+  "refs": [
+    "refs/heads/main"
+  ],
+  "reachable_commits": 21,
+  "recursive_trees": 21,
+  "unique_text_blobs_reviewed": 114,
+  "pattern_findings": [],
+  "commit_metadata": "All authors and committers use the owner GitHub noreply address.",
+  "text_review_scope": "Credential patterns, private keys, personal/workspace paths, emails, filenames and URL domains. Text fetched at immutable commit IDs.",
+  "binary_content_verified": [
+    "0c9770d5183ba60dc4350d3e011b782a320761ae",
+    "d992a83ce525c330fad3a19087746bcb2dc038ee",
+    "1e27e8fdaae7b32b74c8c63178bc46553af8e60a",
+    "696646c3de4ff537db80725593775cfeac3c06b7"
+  ],
+  "unreviewed_historical_binary_blobs": [
+    {
+      "sha": "b30dfa384a7ae64c100ba17e2799d8ffe58db9c6",
+      "path": "docs/plugin-preview.png",
+      "bytes": 830906
+    },
+    {
+      "sha": "fb71acfdca0358ca9d7444f2c9b5f09d8e65aef2",
+      "path": "docs/plugin-preview.png",
+      "bytes": 648265
+    },
+    {
+      "sha": "7bba0fd6e63b9e2f16178a8d5d0fdf7eff16fac1",
+      "path": "docs/plugin-preview.png",
+      "bytes": 717378
+    },
+    {
+      "sha": "24abe5abda758aad1b28f682d6b945e9ed0c0e1f",
+      "path": "docs/plugin-preview.png",
+      "bytes": 135658
+    },
+    {
+      "sha": "b5bb717c5b2158b01b0ba2c491cf1ef230c2b775",
+      "path": "docs/plugin-preview.png",
+      "bytes": 138713
+    },
+    {
+      "sha": "0637cefb3ba03979a15843e6d74f0c7a087c0b43",
+      "path": "docs/plugin-preview.png",
+      "bytes": 259203
+    },
+    {
+      "sha": "200ec84da56cdf54249f91a290635d58b363cb3d",
+      "path": "docs/plugin-preview.png",
+      "bytes": 260686
+    },
+    {
+      "sha": "f41e389f57d04611ca3616598b66e42bc63423c0",
+      "path": "docs/plugin-preview.png",
+      "bytes": 258179
+    },
+    {
+      "sha": "87938ef481bccfe0b4968a02538543e87773f7ee",
+      "path": "docs/plugin-preview.png",
+      "bytes": 58528
+    }
+  ],
+  "limitations": [
+    "Heuristic screening is not a guarantee that secrets are absent.",
+    "Nine historical UI PNG revisions could not be retrieved as binary through the available GitHub connection; review from a full clone remains required.",
+    "GitHub attachments, Actions logs/artifacts, unreachable objects and other external storage are outside this Git-tree audit."
+  ]
+}

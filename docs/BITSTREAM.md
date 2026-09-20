@@ -56,8 +56,8 @@ compression format. Quantization remains lossy at every rate.
 
 Audio metadata is not stored in v1 and WAV tags are not copied through this CLI.
 Keep ATTRIBUTION.md with demo `.rit` files and decoded WAVs when sharing them.
-The package_release.py CLI packager still packages the established renderer only;
-experimental ritual-stream release packaging is pending.
+The CLI packager includes both the Classic renderer and experimental ritual-stream.
+See PACKAGING.md for archive validation and corresponding-source contents.
 
 ## Byte layout
 

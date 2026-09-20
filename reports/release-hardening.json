@@ -1,0 +1,35 @@
+{
+  "date": "2026-09-19",
+  "base_revision": "6482bc6c75af74e11215b0d68bdff7b110ed1634",
+  "platform": "Linux x86_64, GCC13.3 Release",
+  "ctest_suites_passed": 6,
+  "packaging_unit_tests": 7,
+  "crc_repaired_payload_mutations": 2400,
+  "hardening_sanitizers": "ASan and UBSan passed; detect_leaks=0 for VM compatibility",
+  "hardening_strict_warnings": "Passed with -Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -Wfloat-equal -Werror",
+  "extracted_cli_source_build": "Fresh Release configure/build; all 5 CLI CTest suites passed",
+  "archives": {
+    "cli": {
+      "archive_bytes": 608490,
+      "sha256": "5b9ed6a6dbc03fff4c83bc635d6ba227a0771b0000003f62dfd8ab63b9230d3d",
+      "source_files": 42,
+      "juce_legal_files": 0,
+      "source_zip_crc_ok": true
+    },
+    "vst3": {
+      "archive_bytes": 38118780,
+      "sha256": "dca508a488f1cb6a4407eb90109627c326e924d9ac28ec76bd6a559be86c1f53",
+      "source_files": 4881,
+      "juce_legal_files": 25,
+      "source_zip_crc_ok": true
+    }
+  },
+  "ci": "Verified manual-only, read-only token, commit-pinned actions; no Actions runs",
+  "limitations": [
+    "Nine historical PNG blobs remain unreviewed; see history-audit.json.",
+    "Latest Mac/AU, Windows and DAW installation checks not run.",
+    "Owner must enable and verify GitHub private vulnerability reporting.",
+    "Shared VM tests do not establish realtime DAW performance."
+  ],
+  "extracted_cli_execution": "Both packaged executables ran; RIT v2 encode/decode and Classic render succeeded on an 8-second stereo excerpt."
+}
