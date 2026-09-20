@@ -7,7 +7,7 @@ Track evidence or relevant commits beside completed items. Making the repository
 ## Before making the repository public
 
 - [x] Owner confirmed on 2026-09-17 that this plugin does not conflict with work obligations or scope. Recorded as owner confirmation, not an independent legal review.
-- [ ] Finish the Git-history audit: 21 commits / 114 unique text blobs screened without credential-pattern findings; current fonts/previews verified. Nine historical PNG revisions still need binary review from a full clone. See reports/history-audit.json. No credential rotation indicated by the completed checks.
+- [x] Complete the scoped Git-history audit at 6482bc6: 21 commits / 114 unique text blobs screened without credential-pattern findings; fonts/current previews verified. All nine outstanding historical PNGs retrieved through the GitHub plugin, blob hashes verified, visually reviewed and metadata checked on 2026-09-20. No findings requiring removal or credential rotation. See reports/history-audit.json for scope and exclusions.
 - [x] Review source-license compatibility with pinned JUCE under AGPLv3. See LICENSE_ASSET_AUDIT.md; binary distribution follow-up remains below.
 - [x] Inspect included font licenses and music license/provenance. See LICENSE_ASSET_AUDIT.md for evidence and scope.
 - [ ] Decide whether AGPL fits future commercial plans and how outside contributions will be accepted.
@@ -52,4 +52,4 @@ Track evidence or relevant commits beside completed items. Making the repository
 
 - Release hardening: six Linux CTest suites pass, including 2,400 deterministic CRC-repaired payload mutations, extreme streaming input and seven packaging tests. ASan/UBSan pass with LeakSanitizer disabled for VM compatibility. See reports/release-hardening.json.
 
-- 2026-09-20: Colin owns listening and DAW validation. Documentation review corrected stale cross-platform claims, both-CLI build instructions, Release configuration examples, ad-hoc signing terminology and the private-reporting publication sequence. Historical image review remains pending access; no repository visibility/settings changes or Actions runs.
+- 2026-09-20: Colin owns listening and DAW validation. Documentation review corrected stale cross-platform claims, both-CLI build instructions, Release configuration examples, ad-hoc signing terminology and the private-reporting publication sequence. Historical image review completed through the GitHub plugin with no findings; no repository visibility/settings changes or Actions runs.

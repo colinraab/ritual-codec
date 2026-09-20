@@ -26,8 +26,11 @@ python3 tools/audit_history.py --repo . > history-review.json
 ```
 
 Review findings manually; exit zero means no pattern matches, not certification.
-Review historical PNGs and font metadata as well. reports/history-audit.json lists
-nine historical preview blobs not available for binary inspection in the VM.
+Review historical PNGs and font metadata as well. reports/history-audit.json
+records the original text/font audit and the 2026-09-20 completion of all nine
+outstanding historical preview reviews through the GitHub plugin. No visible
+private information or PNG text/EXIF metadata was found; decoded blob hashes
+matched the historical inventory. Re-run screening against the final release ref.
 Do not rewrite history or rotate credentials unless an actual finding warrants it.
 
 ## Mac / DAW smoke test
