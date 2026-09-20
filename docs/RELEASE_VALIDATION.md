@@ -65,7 +65,31 @@ licenses and notices. On macOS verify the completed bundle's signature and run
 AU validation after extraction. Ad-hoc signing is not Developer ID notarization;
 never describe these builds as notarized or disable system-wide security controls.
 
-Before making the repository public, the owner must enable GitHub private
-vulnerability reporting and verify the **Report a vulnerability** route. License
-strategy and final publication remain owner decisions. Nothing in this workflow
-publishes a release or changes repository visibility.
+License strategy and final publication remain owner decisions. Nothing in this
+workflow publishes a release or changes repository visibility.
+
+## Private vulnerability reporting
+
+GitHub documents private vulnerability reporting for **public repositories**.
+It cannot be treated as a completed pre-publication setting on this private repo.
+At the separately approved publication step, before announcements or binaries:
+
+1. In repository **Settings → Advanced Security**, enable **Private vulnerability
+   reporting** (under the Security and quality sidebar section).
+2. Open **Security → Advisories** and verify **Report a vulnerability** opens
+   the private report form. Verify from a non-admin account if available; do not
+   submit a fake advisory merely to test the button.
+3. Ensure the maintainer watches **Security alerts** (or All Activity) and has
+   the intended GitHub notification delivery enabled.
+4. Record the date and verification evidence here, and update SECURITY.md to
+   remove its pending-status wording. If unavailable, establish a private
+   contact route before announcing the project.
+
+Source: [GitHub configuration instructions](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository),
+checked 2026-09-20. Status: pending publication; no settings or visibility changed.
+
+## Validation ownership
+
+As of 2026-09-20, Colin is handling listening and DAW validation. Keep those
+checklist gates open until results identify the tested revision, platform and
+host. Documentation and historical-preview review are separate from audio approval.

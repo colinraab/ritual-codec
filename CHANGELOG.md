@@ -15,7 +15,7 @@
 - Bitstreams remain lossy at all rates; block-edge distortion, changed peaks and
   stereo-image changes are possible. Format stability is not promised yet.
 - Local Linux regression and sanitizer testing completed. Latest Mac/AU, Windows
-  and DAW release validation are still pending. Builds are unsigned/unnotarized
-  unless an individual release explicitly states otherwise.
+  and DAW release validation are still pending. macOS development bundles may be ad-hoc signed; they are not Developer ID
+  signed or notarized. No production signing claim is made for other platforms.
 
 No public release has been published from this changelog entry.

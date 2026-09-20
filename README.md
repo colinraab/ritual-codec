@@ -25,7 +25,8 @@ revision; CLI-only builds do not download or link JUCE.
 
 ```sh
 # CLI and engine tests only
-cmake -S . -B build-cli -DRITUAL_BUILD_VST3=OFF -DRITUAL_BUILD_AU=OFF
+cmake -S . -B build-cli -DCMAKE_BUILD_TYPE=Release \
+  -DRITUAL_BUILD_VST3=OFF -DRITUAL_BUILD_AU=OFF
 cmake --build build-cli --config Release
 ctest --test-dir build-cli -C Release --output-on-failure
 
@@ -127,9 +128,12 @@ original algorithm and measurement details; those notes describe v0.1.
 
 ## Status and next steps
 
-Linux VST3 and CLI builds and the engine/processor/editor tests pass locally.
-Linux, Windows and macOS CI builds and tests pass, including Apple AU validation.
-See [validation details](reports/PLUGIN_VALIDATION.md).
+The release-hardening revision passed six local Linux test suites, including
+decoder and packaging checks. Earlier Windows/macOS builds and AU validation
+passed during development; they do not qualify the current revision. Latest
+Mac/Windows and DAW checks remain pending. See the current
+[release validation matrix](docs/RELEASE_VALIDATION.md);
+[earlier plugin validation](reports/PLUGIN_VALIDATION.md) is historical evidence.
 
 The artistic goal is intentional spectral breakup with preserved rhythmic impact.
 The interface and sound are experimental. Listen before relying on presets in

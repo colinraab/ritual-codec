@@ -20,7 +20,8 @@ Track evidence or relevant commits beside completed items. Making the repository
 - [x] Review tracked artifact inventory: build outputs/logs/music binaries are ignored and not tracked. Retain useful measurement reports, embedded fonts and UI previews; release archives stay outside Git.
 - [x] CI remains workflow_dispatch-only, contents:read, with commit-pinned actions, nonpersistent checkout credentials, a 45-minute job limit and 7-day artifact retention. No hosted runs were triggered.
 - [x] Add contribution expectations, a bug-report template, security policy and experimental support expectations.
-- [ ] Owner: enable GitHub private vulnerability reporting and verify the submission route before making the repository public.
+- [x] Prepare private-reporting policy and publication-day instructions in SECURITY.md and RELEASE_VALIDATION.md. GitHub supports the feature for public repos; it is not enabled on this private repo.
+- [ ] At separately approved publication, enable private vulnerability reporting, verify the report form and maintainer notifications before announcements/binaries.
 - [x] Prepare existing version 0.2.0 as an unreleased experimental preview with CHANGELOG.md and known compatibility limits. No tag/release published.
 
 - [x] Capture a clean Linux build and reproducible pre-bitstream audio baseline. See BASELINE.md and reports/baseline.json. Offline JUCE override used; Mac/AU remains unchecked.
@@ -50,3 +51,5 @@ Track evidence or relevant commits beside completed items. Making the repository
 - GitHub Actions was changed to manual-only during development; confirm configuration at release time.
 
 - Release hardening: six Linux CTest suites pass, including 2,400 deterministic CRC-repaired payload mutations, extreme streaming input and seven packaging tests. ASan/UBSan pass with LeakSanitizer disabled for VM compatibility. See reports/release-hardening.json.
+
+- 2026-09-20: Colin owns listening and DAW validation. Documentation review corrected stale cross-platform claims, both-CLI build instructions, Release configuration examples, ad-hoc signing terminology and the private-reporting publication sequence. Historical image review remains pending access; no repository visibility/settings changes or Actions runs.

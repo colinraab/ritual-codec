@@ -4,7 +4,7 @@ Ritual Codec has four independent CMake switches:
 
 | Option | Default | Purpose |
 | --- | --- | --- |
-| `RITUAL_BUILD_CLI` | `ON` | Builds the `ritual-codec` WAV renderer. |
+| `RITUAL_BUILD_CLI` | `ON` | Builds the `ritual-codec` WAV renderer and `ritual-stream` encoder/decoder. |
 | `RITUAL_BUILD_VST3` | `ON` | Builds the VST3 plug-in. |
 | `RITUAL_BUILD_AU` | `OFF` | Builds the Audio Unit on Apple platforms. |
 | `RITUAL_BUILD_TESTS` | `ON` | Builds engine, bitstream and hardening tests; adds JUCE processor tests with plugins and packaging tests when Python is found. |
@@ -13,7 +13,7 @@ The command-line renderer and engine test have no third-party dependencies. A
 CLI-only configure does not download or configure JUCE:
 
 ```sh
-cmake -S . -B build/cli \
+cmake -S . -B build/cli -DCMAKE_BUILD_TYPE=Release \
   -DRITUAL_BUILD_CLI=ON \
   -DRITUAL_BUILD_VST3=OFF \
   -DRITUAL_BUILD_AU=OFF \
@@ -22,8 +22,9 @@ cmake --build build/cli --parallel
 ctest --test-dir build/cli --output-on-failure
 ```
 
-The executable is named `ritual-codec`. It accepts the same arguments as the
-Makefile build described in the project README.
+The executables are `ritual-codec` and `ritual-stream`. The Classic renderer
+accepts the Makefile arguments described in the project README; see
+[BITSTREAM.md](BITSTREAM.md) for `.rit` encoding and decoding.
 
 ## Linux dependencies
 
@@ -52,7 +53,7 @@ source is not exactly 9.0.2.
 For an offline build, point the override at a checked-out JUCE 9.0.2 tree:
 
 ```sh
-cmake -S . -B build/plugins \
+cmake -S . -B build/plugins -DCMAKE_BUILD_TYPE=Release \
   -DRITUAL_JUCE_SOURCE_DIR=/path/to/JUCE \
   -DRITUAL_BUILD_CLI=ON \
   -DRITUAL_BUILD_VST3=ON \
@@ -72,7 +73,7 @@ building never writes to a system or user plug-in directory.
 On Apple platforms, enable AU explicitly:
 
 ```sh
-cmake -S . -B build/apple \
+cmake -S . -B build/apple -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
   -DRITUAL_BUILD_CLI=ON \
   -DRITUAL_BUILD_VST3=ON \
