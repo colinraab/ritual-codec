@@ -621,7 +621,7 @@ RitualAudioProcessorEditor::RitualAudioProcessorEditor (RitualAudioProcessor& p)
 
     codecButton.setButtonText ("CODEC: CLASSIC");
     codecButton.setClickingTogglesState (true);
-    codecButton.setTooltip ("Switch to the experimental Ritual bitstream. Budget sets the packet budget; Mix, Output and Bypass remain active. Other controls and classic presets are inactive in this mode.");
+    codecButton.setTooltip ("Switch to the experimental Ritual bitstream. Budget sets the packet budget; Mix, Output and Bypass remain active. Competition, Memory, Punch and Crunch shape the encoded audio. Clock, Downsample and classic presets are inactive in RIT mode.");
     addAndMakeVisible (codecButton);
     codecAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
         ritualProcessor.parameters, "bitstream", codecButton);
@@ -925,13 +925,33 @@ void RitualAudioProcessorEditor::updateMetersAndStatus()
     codecButton.setButtonText (streaming ? "CODEC: RIT" : "CODEC: CLASSIC");
     for (size_t i = 1; i <= 6; ++i)
     {
-        controlSliders[i]->setEnabled (! streaming);
-        controlLabels[i].setAlpha (streaming ? 0.4f : 1.0f);
+        const bool enabled = ! streaming || i <= 4;
+        controlSliders[i]->setEnabled (enabled);
+        controlLabels[i].setAlpha (enabled ? 1.0f : 0.4f);
     }
     for (auto& button : presetButtons) button.setEnabled (! streaming);
     budgetSlider.setTooltip (streaming
         ? "Encoded packet budget. Actual kbps is shown in the header and depends on sample rate. Transient energy and sparse attacks are carried in the packets."
         : "Spectral precision budget: lower values create stronger digital artifacts.");
+    controlLabels[0].setTooltip (budgetSlider.getTooltip());
+    const std::array<const char*, 4> ritTips {
+        "RIT: favour strong spectral components at high values; balance selection across frequency bands at low values.",
+        "RIT: retain previous spectral shapes in the encoded audio. Higher values smear and prolong timbres.",
+        "RIT: preserve sparse attacks and release spectral memory on transients. No original PCM bypass is stored.",
+        "RIT: coarsen encoded coefficient values for digital grain. Packet bitrate stays fixed."
+    };
+    const std::array<const char*, 4> classicTips {
+        "Lets energetic bands win more of the available precision, making dense material fight for focus.",
+        "How long each band keeps its spectral shape. High memory creates stale, smeared colour.",
+        "Transient rescue: blends delayed original PCM into detected attacks so kick and clap edges stay crisp.",
+        "Amplitude quantisation. Higher values add stepped levels and brittle digital grain."
+    };
+    for (size_t i = 0; i < ritTips.size(); ++i)
+    {
+        const auto text = streaming ? ritTips[i] : classicTips[i];
+        controlSliders[i + 1]->setTooltip (text);
+        controlLabels[i + 1].setTooltip (text);
+    }
     if (meter != nullptr)
     {
         meter->setLevels (ritualProcessor.inputPeak.load (std::memory_order_relaxed),

@@ -160,7 +160,7 @@ void tests() {
     // independently decoded packets with exactly 256 samples of alignment.
     const auto packetRate = static_cast<unsigned> (std::ceil (
         streamA.streamBitrateKbps.load (std::memory_order_relaxed)));
-    const auto packetReference = rit::decode (rit::encode ({ 48000, 2, streamInput }, packetRate, 2));
+    const auto packetReference = rit::decode (rit::encode ({ 48000, 2, streamInput }, packetRate, 2, { .65f, .65f, .9f, .25f }));
     for (size_t frame = 1024; frame < streamInput.size() / 2; ++frame)
         for (size_t channel = 0; channel < 2; ++channel)
             require (std::abs (streamOutputA[frame * 2 + channel]
@@ -280,6 +280,19 @@ void tests() {
         }
         require(buttons==6,"Missing codec, preset, or bypass button");
     }
+    set(ui, "bitstream", 1.0f);
+    editor.reset();
+    editor.reset(ui.createEditor());
+    for (auto* child : editor->getChildren())
+        if (auto* slider = dynamic_cast<juce::Slider*>(child))
+        {
+            const auto id = slider->getComponentID();
+            const bool expected = id != "clock" && id != "downsample";
+            require(slider->isEnabled() == expected, "Incorrect RIT control availability");
+        }
+    set(ui, "bitstream", 0.0f);
+    editor.reset();
+    editor.reset(ui.createEditor());
     bool presetFound=false;
     for(auto* child:editor->getChildren()) if(auto* button=dynamic_cast<juce::TextButton*>(child)) {
         if(button->getButtonText()=="DAMAGED") { button->onClick();presetFound=true; }

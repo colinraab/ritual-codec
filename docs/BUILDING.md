@@ -257,3 +257,9 @@ sign/copy/registrar/AU-validation steps under Local AU iteration above. Then reo
 the host and create a fresh instance. Check for a second older copy in the system
 `/Library/Audio/Plug-Ins/Components` folder if the user-level update is not loaded.
 Do not delete another installation without confirming which copy the host uses.
+
+A WAV-only executable given MP3/FLAC input reports the build option and suggests
+converting to WAV. Enabling the option without installed headers/library fails
+CMake configuration. Removing libsndfile after linking an extended executable can
+instead cause an OS loader error before the CLI starts; reinstall the dependency
+or rebuild with the option OFF. The application cannot intercept loader errors.

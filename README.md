@@ -13,7 +13,7 @@ currently an effect prototype; its Budget remains an artistic control, not kbps.
 A separate experimental `ritual-stream` CLI now encodes and decodes actual `.rit`
 files with an explicit byte budget. See [the bitstream experiment](docs/BITSTREAM.md)
 for commands, the versioned format, tests and limitations. The header's CODEC button enables this experimental path in the plugin. Classic
-remains the default; RIT has a different sound and currently supports Budget, Mix,
+remains the default; RIT has a different sound and supports Budget, Competition, Memory, Punch, Crunch, Mix,
 Output and Bypass. Both modes retain 256 samples of latency.
 
 ![Ritual Codec plugin interface](docs/plugin-preview.png)
@@ -51,7 +51,9 @@ Numeric controls use bundled IBM Plex Mono.
 ## Controls
 
 These descriptions apply to Classic mode. In RIT mode, Budget selects packet
-size; only Budget, Mix, Output and Bypass are active. The header CODEC button
+size; Competition, Memory, Punch and Crunch shape the encoded audio.
+Mix, Output and Bypass remain active; Clock, Downsample and Classic presets
+are disabled. See [RIT control meanings](docs/BITSTREAM.md#plugin-experiment). The header CODEC button
 switches modes and RIT displays its actual packet bitrate.
 
 | Control | Behavior |
@@ -142,7 +144,7 @@ The interface and sound are experimental. Listen before relying on presets in
 productions; future algorithm versions will need explicit preset compatibility.
 
 Possible next steps: independent band clocks, a dedicated low-band path, separate
-attack-rescue and decay controls, and artistic controls for the opt-in bitstream
+attack-rescue and decay controls, and further tuning of the opt-in bitstream
 after listening validation. The Classic plugin Punch implementation
 uses original PCM during attacks, so its preservation is not free compression.
 

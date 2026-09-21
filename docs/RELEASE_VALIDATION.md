@@ -48,12 +48,13 @@ monitoring gain: this is an intentional degradation effect without a limiter.
 
 - Exercise Classic and RIT with music, silence and isolated drum hits at 44.1,
   48 and 96 kHz and available 32/64/128/512-sample buffers.
-- Automate Budget, Mix and Output; repeatedly switch modes and toggle host and
+- Automate Budget, Competition, Memory, Punch, Crunch, Mix and Output in both
+  modes; repeatedly switch modes and toggle host and
   plugin bypass. Check for dropouts, unexpected level bursts and alignment.
 - Change transport state, loop, stop/start and render offline. Confirm the host
   reports 256 samples of latency in both modes.
 - Save/reopen a session in each mode, including an older Classic session. Check
-  parameter values, automation and disabled controls in RIT mode.
+  parameter values, automation and disabled Clock/Downsample controls in RIT mode.
 - Open/close and resize multiple editors, instantiate several plugins, and
   monitor sustained CPU usage and audio dropouts for at least ten minutes.
 - Test mono and stereo tracks and opposite-phase stereo input. Compare rendered

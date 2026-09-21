@@ -17,14 +17,36 @@ static rit::Bytes wav(const rit::Audio& a) {
     rit::put(b,0x61746164,4);rit::put(b,a.samples.size()*4,4);for(float x:a.samples){uint32_t v;std::memcpy(&v,&x,4);rit::put(b,v,4);}return b;
 }
 int main(int argc,char** argv)try {
-    if(argc<4){std::cerr<<"Experimental Ritual bitstream\nritual-stream encode input-audio output.rit [kbps=128] [version=2]\nritual-stream decode input.rit output.wav\n";return 1;}
+    if(argc<4){std::cerr<<"Experimental Ritual bitstream\nritual-stream encode input-audio output.rit [kbps=128] [version=2] [--competition 0..1] [--memory 0..1] [--punch 0..1] [--crunch 0..1]\nritual-stream decode input.rit output.wav\n";return 1;}
     ritual_input::differentFiles(argv[2],argv[3]);
     const std::string mode=argv[1];rit::require(std::string(argv[2])!=argv[3],"Input and output must differ");
     if(mode=="encode"){
-        rit::require(argc>=4&&argc<=6,"Unexpected arguments");unsigned kbps=128,version=2;
-        if(argc>=5){std::string v=argv[4];size_t end=0;const auto n=std::stoul(v,&end);rit::require(end==v.size()&&n>=1&&n<=4096,"Invalid bitrate");kbps=static_cast<unsigned>(n);}
-        if(argc==6){const std::string v=argv[5];rit::require(v=="1"||v=="2","Unsupported version");version=v=="1"?1u:2u;}
-        const auto a=ritual_input::read(argv[2]);const auto b=rit::encode(a,kbps,version);writeFile(argv[3],b);
+        unsigned kbps=128,version=2;
+        rit::EncoderControls controls;
+        int arg=4;
+        if(arg<argc && std::string(argv[arg]).rfind("--",0)!=0){
+            std::string v=argv[arg++];size_t end=0;const auto n=std::stoul(v,&end);
+            rit::require(end==v.size()&&n>=1&&n<=4096,"Invalid bitrate");kbps=static_cast<unsigned>(n);
+        }
+        if(arg<argc && std::string(argv[arg]).rfind("--",0)!=0){
+            const std::string v=argv[arg++];rit::require(v=="1"||v=="2","Unsupported version");version=v=="1"?1u:2u;
+        }
+        unsigned seen=0;
+        while(arg<argc){
+            const std::string flag=argv[arg++];
+            float* target=nullptr;unsigned mask=0;
+            if(flag=="--competition"){target=&controls.competition;mask=1;}
+            else if(flag=="--memory"){target=&controls.memory;mask=2;}
+            else if(flag=="--punch"){target=&controls.punch;mask=4;}
+            else if(flag=="--crunch"){target=&controls.crunch;mask=8;}
+            else throw std::runtime_error("Unknown encoder option: "+flag);
+            rit::require((seen&mask)==0,"Duplicate encoder option");seen|=mask;
+            rit::require(arg<argc,"Missing encoder option value");
+            const std::string value=argv[arg++];size_t end=0;const float x=std::stof(value,&end);
+            rit::require(end==value.size()&&std::isfinite(x)&&x>=0&&x<=1,"Encoder controls must be finite values from 0 to 1");
+            *target=x;
+        }
+        const auto a=ritual_input::read(argv[2]);const auto b=rit::encode(a,kbps,version,controls);writeFile(argv[3],b);
         const double seconds=static_cast<double>(a.samples.size())/(a.channels*a.rate);
         std::cout<<"{\"bytes\":"<<b.size()<<",\"version\":"<<version<<",\"requested_kbps\":"<<kbps<<",\"file_kbps\":"<<static_cast<double>(b.size())*8/seconds/1000<<",\"frame_samples\":128}\n";
     }else if(mode=="decode"){

@@ -458,6 +458,9 @@ void RitualAudioProcessor::processAudio (juce::AudioBuffer<float>& buffer,
                     channel.fill (0.0f);
             }
 
+            if ((streamPosition % rit::block) == 0)
+                stream->setControls ({ competition, memory, punch, crunch });
+
             // The stream API accepts interleaved samples.  Calling it with one
             // sample keeps this wrapper independent of the host block size and
             // avoids a callback-time scratch allocation.

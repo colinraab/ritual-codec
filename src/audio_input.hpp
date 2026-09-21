@@ -19,7 +19,7 @@ inline rit::Bytes readFile(const char* path) {
     rit::require(bool(f.read(reinterpret_cast<char*>(b.data()),size)),"Read failed");return b;
 }
 inline rit::Audio readWav(const rit::Bytes& b) {
-    size_t p=0;rit::require(rit::get(b,p,4)==0x46464952,"Expected WAV; MP3/FLAC input requires RITUAL_CLI_SNDFILE=ON");
+    size_t p=0;rit::require(rit::get(b,p,4)==0x46464952,"This build reads PCM16/24 or float32 WAV only. For MP3/FLAC, install libsndfile and rebuild with -DRITUAL_CLI_SNDFILE=ON (see docs/BUILDING.md), or convert the input to WAV first.");
     const auto riff=rit::get(b,p,4);rit::require(riff+8==b.size(),"Invalid RIFF length");
     rit::require(rit::get(b,p,4)==0x45564157,"Expected WAVE");
     rit::Audio a;unsigned fmt=0,bits=0,align=0;size_t begin=0,length=0;

@@ -62,6 +62,17 @@ struct Audio
     std::vector<float> samples;
 };
 
+// Optional encoder shaping controls.  They intentionally live outside the
+// packet format: the decoder only sees the ordinary v1/v2 records, while the
+// encoder uses these values to choose and quantize those records.
+struct EncoderControls
+{
+    float competition = 1.0f; // 1: strongest coefficients, 0: balanced bands
+    float memory = 0.0f;      // spectral persistence from the preceding block
+    float punch = 1.0f;       // sparse transient selection/rescue
+    float crunch = 0.0f;      // coarsen coefficient quantization
+};
+
 inline const auto& basis()
 {
     static const auto table = [] {
@@ -76,6 +87,45 @@ inline const auto& basis()
 }
 
 namespace detail {
+
+inline float clampControl (float value) noexcept
+{
+    if (! std::isfinite (value))
+        return 0.0f;
+    return std::max (0.0f, std::min (1.0f, value));
+}
+
+inline EncoderControls clampControls (EncoderControls controls) noexcept
+{
+    controls.competition = clampControl (controls.competition);
+    controls.memory = clampControl (controls.memory);
+    controls.punch = clampControl (controls.punch);
+    controls.crunch = clampControl (controls.crunch);
+    return controls;
+}
+
+inline bool neutralControls (const EncoderControls& controls) noexcept
+{
+    return controls.competition >= 1.0f && controls.memory <= 0.0f
+        && controls.punch >= 1.0f && controls.crunch <= 0.0f;
+}
+
+// State is deliberately fixed-size so it can be owned by Streaming and
+// mutated from the callback without an allocation.  The offline encoder uses
+// the same state and packet planner, which keeps packet choices identical.
+struct EncoderState
+{
+    std::array<std::array<double, block>, 2> previousSpectrum{};
+    std::array<double, 2> previousEnergy{};
+    std::array<bool, 2> initialized{};
+
+    void reset() noexcept
+    {
+        previousSpectrum = {};
+        previousEnergy = {};
+        initialized = {};
+    }
+};
 
 inline unsigned packetBytesFor (unsigned rate, unsigned channels, unsigned kbps)
 {
@@ -152,12 +202,12 @@ inline void sortedByAbs (const std::array<float, block>& values,
 // samples prevents a dense sustained waveform from turning into a packet full
 // of time-domain holes merely because its bitrate is high.
 inline unsigned sparseCount (const std::array<float, block>& values,
-                             unsigned maximum) noexcept
+                             unsigned maximum, float punch = 1.0f) noexcept
 {
     double total = 0.0;
     for (const auto x : values)
         total += double (x) * x;
-    if (total <= 0.0 || maximum == 0)
+    if (total <= 0.0 || maximum == 0 || punch <= 0.0f)
         return 0;
 
     std::array<unsigned, block> order{};
@@ -168,10 +218,52 @@ inline unsigned sparseCount (const std::array<float, block>& values,
     {
         const auto x = values[order[count - 1]];
         captured += double (x) * x;
-        if (captured >= total * 0.95)
+        if (captured >= total * (1.0 - 0.05 * static_cast<double>(punch)))
             return count;
     }
     return 0;
+}
+
+// Preserve normalized magnitudes while following the current block's signs.
+// All state is encoder-only: the resulting coefficients are stored in packets.
+inline void shapeSpectrum(std::array<double, block>& coeff, double energy,
+                          unsigned channel, EncoderState& state,
+                          const EncoderControls& controls) noexcept
+{
+    const double norm = std::sqrt(energy);
+    const double old = state.previousEnergy[channel];
+    const double attack = energy > 0 ? std::max(0.0, (energy-old*1.6)/(energy+1e-20)) : 0;
+    const double retain = state.initialized[channel] ? .98*controls.memory*(1.0-controls.punch*attack) : 0;
+    for(unsigned k=0;k<block;++k) {
+        const double fresh = norm > 0 ? std::abs(coeff[k])/norm : 0;
+        const double magnitude = (1-retain)*fresh + retain*state.previousSpectrum[channel][k];
+        if(controls.memory > 0 && norm > 0)
+            coeff[k] = std::copysign(magnitude*norm, coeff[k]);
+        state.previousSpectrum[channel][k] = magnitude;
+    }
+    state.previousEnergy[channel] = energy;
+    state.initialized[channel] = energy > 0;
+}
+inline void rankSpectrum(const std::array<double, block>& coeff,
+                         std::array<unsigned, block>& order, float competition) noexcept
+{
+    if(competition >= 1) { sortedByAbs(coeff,order); return; }
+    std::array<double, 8> energy{};
+    for(unsigned k=0;k<block;++k) energy[k/16] += coeff[k]*coeff[k];
+    std::array<double,block> score{};
+    for(unsigned k=0;k<block;++k) {
+        order[k]=k;
+        score[k]=std::abs(coeff[k])/std::pow(std::sqrt(energy[k/16])+1e-20,1.0-competition);
+    }
+    std::sort(order.begin(),order.end(),[&](unsigned a,unsigned b){
+        return std::equal_to<>{}(score[a],score[b]) ? a<b : score[a]>score[b];
+    });
+}
+inline int crunchQuantized(int q, float crunch) noexcept
+{
+    if(crunch <= 0) return q;
+    const double step=std::pow(2.0, static_cast<double>(crunch)*6.0);
+    return std::clamp(static_cast<int>(std::lround(std::round(q/step)*step)),-127,127);
 }
 
 inline unsigned rawCount (unsigned count, bool sparse, unsigned version) noexcept
@@ -448,8 +540,12 @@ public:
         packetBytes_ = bytes; kbps_ = kbps; valid_ = true; return true;
     }
 
+    void setControls(EncoderControls controls) noexcept { controls_ = detail::clampControls(controls); }
+    const std::array<uint8_t,maxPacketBytes>& lastPacket() const noexcept { return packet_; }
+
     void reset() noexcept
     {
+        encoderState_.reset();
         inputBlock_.fill (0.0f); delay_.fill (0.0f);
         blockFill_ = 0; samplePosition_ = 0;
     }
@@ -514,16 +610,17 @@ private:
                 energy += double (value) * value;
                 for (unsigned k = 0; k < block; ++k) coeff[k] += value * t[k][n];
             }
-            const unsigned sparseN = version_ == 2 ? detail::sparseCount (values, capacity) : 0;
+            detail::shapeSpectrum(coeff, energy, c, encoderState_, controls_);
+            const unsigned sparseN = version_ == 2 ? detail::sparseCount (values, capacity, controls_.punch) : 0;
             const bool sparse = sparseN != 0;
             const unsigned count = sparse ? sparseN : capacity;
             std::array<unsigned, block> order{};
-            detail::sortedByAbs (coeff, order);
+            detail::rankSpectrum (coeff, order, controls_.competition);
             std::array<unsigned, block> timeOrder{};
             if (sparse) detail::sortedByAbs (values, timeOrder);
             const auto rms = detail::rmsQuantized (energy);
-            const double peak = sparse ? std::abs (values[timeOrder[0]])
-                                       : std::abs (coeff[order[0]]);
+            double peak = sparse ? std::abs (values[timeOrder[0]]) : 0;
+            if (!sparse) for(unsigned j=0;j<count;++j) peak=std::max(peak,std::abs(coeff[order[j]]));
             const auto scaleQ = detail::scaleQuantized (peak);
             const double scale = scaleQ * 64.0 / 65535;
 
@@ -538,9 +635,14 @@ private:
             {
                 const unsigned index = sparse ? timeOrder[j] : order[j];
                 const double source = sparse ? values[index] : coeff[index];
-                const int signedQ = version_ == 1
+                const int baseQ = version_ == 1
                                       ? detail::qExactFor (source, scale)
                                       : static_cast<int> (detail::qFor (source, scale)) - 127;
+                int signedQ = detail::crunchQuantized(baseQ,controls_.crunch);
+                // Very quiet nonzero blocks must retain a nonzero record for RMS reconstruction.
+                if (rms != 0 && signedQ == 0 && std::equal_to<>{}(std::abs(source),peak)
+                    && detail::crunchQuantized(static_cast<int>(detail::qFor(peak,scale))-127,controls_.crunch)==0)
+                    signedQ = source < 0 ? -1 : 1;
                 const uint32_t record = index | (uint32_t (signedQ + 127) << 7);
                 bits |= record << used;
                 used += 15;
@@ -626,6 +728,8 @@ private:
         }
     }
 
+    EncoderControls controls_{};
+    detail::EncoderState encoderState_{};
     unsigned rate_ = 0, channels_ = 0, version_ = 0, kbps_ = 0, packetBytes_ = 0;
     bool valid_ = false;
     unsigned blockFill_ = 0;
@@ -635,5 +739,30 @@ private:
     std::array<double, block * 2> decodedBlock_{};
     std::array<uint8_t, maxPacketBytes> packet_{};
 };
+
+// File encoding uses the same fixed packet encoder as realtime processing.
+inline Bytes encode(const Audio& a, unsigned kbps, unsigned version, EncoderControls controls)
+{
+    controls=detail::clampControls(controls);
+    if(detail::neutralControls(controls)) return encode(a,kbps,version);
+    require(version==1 || version==2,"Unsupported RIT version");
+    const auto packetSize=detail::packetBytesFor(a.rate,a.channels,kbps);
+    require(!a.samples.empty() && a.samples.size()%a.channels==0 && a.samples.size()<=64u*1024u*1024u,"Invalid audio length");
+    for(float x:a.samples) require(std::isfinite(x) && std::abs(x)<=4,"Input must be finite and within +/-4");
+    const auto frames=a.samples.size()/a.channels;
+    Bytes out{'R','I','T','1'};
+    put(out,version,2);put(out,a.channels,1);put(out,7,1);put(out,a.rate,4);put(out,frames,8);put(out,packetSize,2);put(out,0,2);
+    Streaming stream(a.rate,a.channels,kbps,version);stream.setControls(controls);
+    std::array<float,block*2> input{},output{};
+    for(size_t start=0;start<frames;start+=block){
+        input.fill(0);
+        const auto n=std::min(static_cast<size_t>(block),frames-start)*a.channels;
+        std::copy_n(a.samples.data()+start*a.channels,n,input.data());
+        stream.process(input.data(),output.data(),static_cast<int>(block));
+        const auto& packet=stream.lastPacket();
+        out.insert(out.end(),packet.begin(),packet.begin()+packetSize);
+    }
+    return out;
+}
 
 } // namespace rit

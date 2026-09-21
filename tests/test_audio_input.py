@@ -58,6 +58,17 @@ def main():
                         assert result.read_bytes() == original, 'FLAC changed lossless samples'
                     run([stream, 'decode', result, d / 'decoded.wav'])
                     run([classic, compressed, d / 'classic.wav'])
+        if not args.extended:
+            mp3 = d / 'input.mp3'
+            mp3.write_bytes(b'ID3' + b'\0' * 128)
+            for command in ([stream, 'encode', mp3, d / 'missing.rit'], [classic, mp3, d / 'missing.wav']):
+                failure = run(command, ok=False)
+                assert 'RITUAL_CLI_SNDFILE=ON' in failure.stderr
+                assert 'convert' in failure.stderr
+        for options in (['--memory', 'nan'], ['--punch', '2'], ['--crunch'], ['--memory', '.2', '--memory', '.4'], ['--unknown', '.2']):
+            run([stream, 'encode', floatwav, result, *options], ok=False)
+        run([stream, 'encode', floatwav, result, '--competition', '.3', '--memory', '.7', '--punch', '.8', '--crunch', '.5'])
+        run([stream, 'decode', result, d / 'controlled.wav'])
         bad = d / 'bad.wav'
         bad.write_bytes(b'RIFF\xff\xff\xff\xffWAVE')
         run([stream, 'encode', bad, d / 'bad.rit'], ok=False)

@@ -113,7 +113,7 @@ For sparse blocks, record indices identify sample positions instead of DCT bins.
 Unsent samples are zero. Values use the same scale and quantizer; reconstructed
 samples are then normalized to the transmitted RMS without an inverse transform.
 The encoder selects this mode only when the largest samples that fit the packet
-capture at least 95% of the nonzero block energy, using no more than 32
+capture at least 95% of the nonzero block energy at the default Punch setting, using no more than 32
 samples. This restriction avoids introducing holes into dense high-rate blocks. This is an encoder choice, not
 an additional decoder side channel. Each stereo channel chooses independently.
 
@@ -126,10 +126,35 @@ public interoperability commitment yet.
 
 Click CODEC: CLASSIC in the header to enable CODEC: RIT. Budget controls packet
 size, and the header reports packet kbps at the current sample rate. Mix, Output
-and Bypass remain active. Competition, Memory, Punch, Crunch, Clock, Downsample
-and Classic presets are disabled in this mode because they are not yet part of
-the encoded algorithm. In particular, sparse transient protection is automatic;
-Punch does not secretly mix original attacks into the decoded stream.
+and Bypass remain active. Four additional encoder controls are available:
+
+| Control | RIT behavior |
+| --- | --- |
+| Competition | High values favour large spectral components; low values balance selection across frequency bands. |
+| Memory | Retains previous spectral shapes in the encoded audio, producing persistence and smear. |
+| Punch | Controls sparse transient selection and transient release from spectral memory; no original-audio bypass. |
+| Crunch | Coarsens encoded coefficient values without changing packet size. |
+
+Clock, Downsample and Classic presets remain disabled. These controls change what
+is encoded, not the decoder contract: `.rit` files carry their audible result and
+can be reconstructed independently. Mix and Output remain plugin post-processing
+and are not encoded by the CLI.
+
+The CLI accepts named encoder controls after optional bitrate/version arguments:
+
+```sh
+ritual-stream encode input.wav output.rit 128 2 \
+  --competition 0.65 --memory 0.65 --punch 0.9 --crunch 0.25
+```
+
+All four controls range from 0 to 1. Omitted controls retain the original CLI
+behavior (Competition 1, Memory 0, Punch 1, Crunch 0). The plugin uses its existing
+knob values, which differ from these CLI defaults. Set the same values and packet
+budget for comparisons, and allow plugin switching/automation to settle.
+
+Compatibility: old `.rit` files retain their decoder behavior. Existing RIT plugin
+sessions may sound different after this update because four previously ignored
+knob values now affect encoding. Classic sessions retain their existing behavior.
 
 Old version-1 plugin states migrate with RIT mode off. New states retain the
 mode. Switching warms up the new path and crossfades while maintaining latency.
@@ -189,7 +214,7 @@ has pronounced block boundaries; listening approval remains outstanding.
 
 - Owner listening approval of the comparison; decide whether to retain block discontinuities.
 - Better temporal attack preservation and stereo handling within explicit bit costs.
-- Map the existing artistic controls onto encoded parameters and decoder behavior.
+- Listening validation of the Competition, Memory, Punch and Crunch encoder controls.
 - Broader CPU measurements and small-buffer stress tests on target machines.
 - Decoder fuzzing beyond smoke tests; safe packet-loss/corruption behavior.
 - Mac/AU and multi-DAW validation of the opt-in plugin mode.

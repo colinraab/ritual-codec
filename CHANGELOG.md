@@ -13,8 +13,11 @@
   and 2; version 2 can encode sparse attacks in the time domain.
 - Opt-in RIT plugin mode with allocation-free streaming and actual packet kbps.
   Classic is the default. Existing version-1 plugin states migrate to Classic.
-- RIT mode currently supports Budget, Mix, Output and Bypass. Other controls and
-  Classic presets are inactive there. It does not record .rit files in the DAW.
+- RIT mode supports Budget, Competition, Memory, Punch, Crunch, Mix, Output and
+  Bypass. Clock, Downsample and Classic presets remain inactive. Named encoder
+  controls are available in ritual-stream. Existing RIT sessions can change sound
+  because previously ignored knobs are now active; Classic and decoded old files
+  are unchanged. The plugin does not record .rit files in the DAW.
 - Bitstreams remain lossy at all rates; block-edge distortion, changed peaks and
   stereo-image changes are possible. Format stability is not promised yet.
 - Local Linux regression and sanitizer testing completed. Latest Mac/AU, Windows
