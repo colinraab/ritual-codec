@@ -29,3 +29,14 @@ The project's AGPL-3.0-or-later grant covers our own code. The pinned JUCE
 dependency declares AGPL-3.0-only as its open-source option, so combined plugin
 distributions use AGPL version 3 with the dependency's separate notices retained.
 It does not grant a later-version license for JUCE itself.
+
+## Optional CLI audio reader
+
+`RITUAL_CLI_SNDFILE=ON` links the separately installed libsndfile library in the
+CLIs only. No libsndfile code or binaries are vendored here. Its upstream header
+carries LGPL-2.1-or-later terms; codec dependencies have their own notices and
+source obligations. Consult the installed distribution and upstream licensing
+before redistributing those libraries. The automatic release packager currently
+rejects extended-input CLI archives because it does not bundle this dependency,
+its matching source or notices. Default WAV-only builds and plugins are unaffected.
+Upstream: https://libsndfile.github.io/libsndfile/

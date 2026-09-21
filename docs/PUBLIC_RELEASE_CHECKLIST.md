@@ -53,3 +53,5 @@ Track evidence or relevant commits beside completed items. Making the repository
 - Release hardening: six Linux CTest suites pass, including 2,400 deterministic CRC-repaired payload mutations, extreme streaming input and seven packaging tests. ASan/UBSan pass with LeakSanitizer disabled for VM compatibility. See reports/release-hardening.json.
 
 - 2026-09-20: Colin owns listening and DAW validation. Documentation review corrected stale cross-platform claims, both-CLI build instructions, Release configuration examples, ad-hoc signing terminology and the private-reporting publication sequence. Historical image review completed through the GitHub plugin with no findings; no repository visibility/settings changes or Actions runs.
+
+- 2026-09-21: Optional CLI MP3/FLAC reader added; Linux format tests cover both CLIs. Native PCM24 WAV requires no dependency. Extended-input CLI binary distribution remains blocked by the packager until runtime/source/notice bundling is implemented; this does not block default CLI or plugin packages. Mac backend validation remains pending.

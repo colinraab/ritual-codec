@@ -691,6 +691,8 @@ def main() -> int:
                          if available[kind]]
     if not requested:
         raise PackagingError("no enabled build outputs to package")
+    if "cli" in requested and _read_cache_values(build_dir / "CMakeCache.txt").get("RITUAL_CLI_SNDFILE", "OFF").upper() in ("ON", "TRUE", "1", "YES"):
+        raise PackagingError("Extended-input CLI builds depend on system libsndfile. Portable dependency/source/notice bundling is not implemented; package a RITUAL_CLI_SNDFILE=OFF build or distribute with an explicit system-dependency installation plan.")
     archives = [make_archive(root, build_dir, output_dir, args.platform, kind,
                              available[kind]) for kind in dict.fromkeys(requested)]
     for archive in archives:

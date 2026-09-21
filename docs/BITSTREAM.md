@@ -44,10 +44,12 @@ build-stream/ritual-stream encode audio/01_source.wav demo.rit 128 2
 build-stream/ritual-stream decode demo.rit decoded.wav
 ```
 
-Input: PCM16 or IEEE float32 mono/stereo WAV, 8–192 kHz, finite samples within
+Input: PCM16/24 or IEEE float32 mono/stereo WAV, 8–192 kHz, finite samples within
 +/-4. Output: float32 WAV, original rate/channel count/sample count. The reference
 codec caps decoded audio at 64 Mi samples across channels; CLI input files are
 capped at 512 MiB. Outputs may exceed unity; no clipping/limiter is applied.
+Optional MP3/FLAC and extended WAV input is available with `RITUAL_CLI_SNDFILE=ON`;
+see [BUILDING.md](BUILDING.md#mp3-flac-and-24-bit-wav-input).
 The CLI prints measured total-file kbps. A requested kbps value is rounded down
 to whole bytes per packet; file-header overhead and final-frame padding affect
 total-file bitrate. Values too small for framing are rejected. Very high rates

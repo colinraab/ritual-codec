@@ -1,7 +1,7 @@
 CXX ?= c++
 CXXFLAGS ?= -O3 -std=c++17 -Wall -Wextra -Wno-misleading-indentation
 all: build/ritual-codec
-build/ritual-codec: src/main.cpp src/bitfamine.hpp
+build/ritual-codec: src/main.cpp src/bitfamine.hpp src/audio_input.hpp src/rit_stream.hpp
 	mkdir -p build
 	$(CXX) $(CXXFLAGS) src/main.cpp -o $@
 build/test_engine: tests/test_engine.cpp src/bitfamine.hpp

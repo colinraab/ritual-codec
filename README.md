@@ -85,9 +85,11 @@ make
 
 Positional controls are Budget, Competition, Memory, Punch, Crunch, Clock,
 Downsample, then optional Transparent (0 or 1). The first five are 0–1,
-Clock is 1–64, Downsample is 1–32. Input: PCM16 or IEEE float32 RIFF WAV,
+Clock is 1–64, Downsample is 1–32. Input: PCM16/24 or IEEE float32 RIFF WAV,
 mono/stereo; output: float32 WAV with engine delay trimmed and tail flushed.
-WAVE_FORMAT_EXTENSIBLE and RF64 are not supported by this minimal CLI reader.
+For MP3/FLAC and extended WAV input in both CLIs, enable the optional
+`RITUAL_CLI_SNDFILE` backend; see [setup and commands](docs/BUILDING.md#mp3-flac-and-24-bit-wav-input).
+The built-in WAV reader does not support WAVE_FORMAT_EXTENSIBLE or RF64.
 
 ## Listen and reproduce the prototype measurements
 

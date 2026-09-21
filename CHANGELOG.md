@@ -2,6 +2,9 @@
 
 ## 0.2.0 — unreleased experimental preview
 
+- Both CLIs accept native PCM24 WAV; optional installed libsndfile adds MP3/FLAC
+  and extended WAV input. Outputs remain .rit or float32 WAV.
+
 - Native JUCE 9.0.2 VST3 and AU effect with a textured interface and stereo
   input/output spectrum comparison.
 - Classic spectral degradation controls, transient protection, latency-aligned

@@ -1,9 +1,10 @@
 # Building Ritual Codec
 
-Ritual Codec has four independent CMake switches:
+Ritual Codec has the following CMake switches:
 
 | Option | Default | Purpose |
 | --- | --- | --- |
+| `RITUAL_CLI_SNDFILE` | `OFF` | Optional installed libsndfile backend for MP3/FLAC and extended WAV input; CLIs only. |
 | `RITUAL_BUILD_CLI` | `ON` | Builds the `ritual-codec` WAV renderer and `ritual-stream` encoder/decoder. |
 | `RITUAL_BUILD_VST3` | `ON` | Builds the VST3 plug-in. |
 | `RITUAL_BUILD_AU` | `OFF` | Builds the Audio Unit on Apple platforms. |
@@ -202,3 +203,57 @@ The CLI archive includes both `ritual-codec` and `ritual-stream`. See
 [PACKAGING.md](PACKAGING.md) for source/notice bundling and archive verification,
 and [RELEASE_VALIDATION.md](RELEASE_VALIDATION.md) for the platform matrix and
 local DAW checklist. No public release or notarization is implied by a build.
+
+## MP3, FLAC and 24-bit WAV input
+
+Both CLIs accept conventional RIFF PCM16/24 and float32 WAV without extra libraries.
+For MP3, FLAC, WAVE_FORMAT_EXTENSIBLE and other libsndfile-supported input, install
+libsndfile and explicitly enable the optional backend. On macOS with Homebrew:
+
+```sh
+brew install libsndfile
+cmake -S . -B build-stream -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH="$(brew --prefix libsndfile)" \
+  -DRITUAL_BUILD_CLI=ON -DRITUAL_BUILD_VST3=OFF -DRITUAL_BUILD_AU=OFF \
+  -DRITUAL_CLI_SNDFILE=ON
+cmake --build build-stream --parallel 4
+ctest --test-dir build-stream --output-on-failure
+./build-stream/ritual-stream encode "input.mp3" output.rit 128 2
+./build-stream/ritual-stream encode "input.flac" output.rit 128 2
+./build-stream/ritual-stream decode output.rit decoded.wav
+./build-stream/ritual-codec "input.flac" classic.wav .22 .8 .78 1 .65 8 3
+```
+
+Linux needs the libsndfile development package (typically `libsndfile1-dev`);
+Windows needs an installed matching-architecture libsndfile development library,
+headers and runtime DLLs. Use `CMAKE_PREFIX_PATH` for its installation prefix.
+MP3 requires libsndfile 1.1+ built with MPEG decoding; format availability follows
+the installed library. Missing libraries fail configure when the option is ON.
+The dependency-free Make build remains WAV-only.
+
+Input is mono/stereo; the extended backend accepts 8–192 kHz without downmixing,
+resampling or loudness normalization. File size is capped at 512 MiB and decoded
+samples at 64 Mi across channels (about 11.65 minutes of stereo at 48 kHz).
+RIT rejects nonfinite input and samples outside +/-4. MP3 decoding adds no recovery
+of detail already lost in that source. Tags/artwork are not carried into `.rit`.
+Output remains `.rit` for encoding and float32 WAV for decoding/Classic rendering;
+this option adds input formats, not MP3/FLAC output.
+
+The AU/VST3 do not link this optional dependency. Extended-input CLIs need their
+installed runtime libraries; the release packager deliberately rejects their CLI
+archives until portable library/source/notice bundling is implemented. Plugin-only
+packages and default WAV-only CLI packages continue to work. See LICENSE-NOTES.md.
+
+CTest always checks 24-bit sign/scale conversion, both CLIs, malformed input and
+same-file rejection. In an extended build it also checks MP3/FLAC if FFmpeg is
+available to generate fixtures; FFmpeg is a test dependency, not a CLI runtime dependency.
+
+## If the AU still looks like an older build
+
+The new mode selector reads **CODEC: CLASSIC** in the top-right header; click it
+for **CODEC: RIT**. The rest of the layout remains familiar. Building does not
+install the AU. Pull the latest source, rebuild, quit the host, and repeat the
+sign/copy/registrar/AU-validation steps under Local AU iteration above. Then reopen
+the host and create a fresh instance. Check for a second older copy in the system
+`/Library/Audio/Plug-Ins/Components` folder if the user-level update is not loaded.
+Do not delete another installation without confirming which copy the host uses.
