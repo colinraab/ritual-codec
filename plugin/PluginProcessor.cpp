@@ -123,7 +123,7 @@ RitualAudioProcessor::RitualAudioProcessor()
     bypassParameter       = parameters.getRawParameterValue (bypassParameterID);
     bitstreamParameter    = parameters.getRawParameterValue (bitstreamParameterID);
 
-    // The latency is fixed by bf::Engine::N and remains present while bypassed
+    // The latency is fixed by classic::Engine::N and remains present while bypassed
     // so that host compensation never changes as the bypass parameter moves.
     setLatencySamples (dryDelaySamples);
 
@@ -194,7 +194,7 @@ void RitualAudioProcessor::prepareToPlay (double sampleRate, int maximumExpected
 
     if (validLayout && roundedRate > 0)
     {
-        bf::Params initialParams;
+        classic::Params initialParams;
         initialParams.budget = readParameter (budgetParameter, defaultBudget, 0.0f, 1.0f);
         initialParams.competition = readParameter (competitionParameter, defaultCompetition, 0.0f, 1.0f);
         initialParams.memory = readParameter (memoryParameter, defaultMemory, 0.0f, 1.0f);
@@ -206,7 +206,7 @@ void RitualAudioProcessor::prepareToPlay (double sampleRate, int maximumExpected
 
         try
         {
-            engine = std::make_unique<bf::Engine> (roundedRate, channelCount, initialParams);
+            engine = std::make_unique<classic::Engine> (roundedRate, channelCount, initialParams);
             preparedSampleRate = roundedRate;
         }
         catch (...)
@@ -499,7 +499,7 @@ void RitualAudioProcessor::processAudio (juce::AudioBuffer<float>& buffer,
 
         if (engine != nullptr)
         {
-            bf::Params currentParams;
+            classic::Params currentParams;
             currentParams.budget = budget;
             currentParams.competition = competition;
             currentParams.memory = memory;

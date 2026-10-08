@@ -1,0 +1,21 @@
+# Approximates the JUCE style used in plugin/ and src/rit_stream.hpp.
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 100
+BreakBeforeBraces: Allman
+SpaceBeforeParens: NonEmptyParentheses
+SpaceAfterLogicalNot: true
+PointerAlignment: Left
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortLambdasOnASingleLine: Inline
+AccessModifierOffset: -4
+NamespaceIndentation: None
+IndentCaseLabels: true
+SortIncludes: Never
+ReflowComments: false
+BinPackArguments: true
+BinPackParameters: true
+AlwaysBreakTemplateDeclarations: Yes

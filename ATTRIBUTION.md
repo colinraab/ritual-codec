@@ -23,7 +23,13 @@ Changes: excerpted approximately 1:00–1:24 and 3:00–3:12 of the decoded sour
 converted to 48 kHz stereo WAV; attenuated 6.02 dB. Processed versions additionally
 use the Ritual Codec DSP parameters in reports/measurements.json. The comparison
 concatenates five processed/source excerpts with silence between them. No
-endorsement by the composer is implied. All audio files in this package derive
-from this track, including source excerpts and processed variants. Keep this
+endorsement by the composer is implied.
+
+docs/audio/ritual-codec-demo.mp3 is made by tools/make_demo_mp3.py from the first
+excerpt: the first six seconds, attenuated 6.02 dB, played unprocessed and then
+through four Classic presets and the RIT bitstream at 64 kbps, with half a second
+of silence between sections, encoded as 192 kbps MP3.
+
+All audio files in this package derive from this track, including source excerpts and processed variants. Keep this
 attribution and license link with redistributions. Code and documentation are
 separate from the third-party music license.

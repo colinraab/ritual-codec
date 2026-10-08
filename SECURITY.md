@@ -1,19 +1,15 @@
 # Security policy
 
-Ritual Codec and the .rit format are experimental. No version currently has a
-security-support commitment. The decoder is tested against malformed inputs,
-but the project has not had an independent security audit.
+Ritual Codec is an experimental hobby project with no security-support
+commitment. The `.rit` decoder is fuzz-style tested against malformed input but
+has not had an independent audit.
 
-Do not post exploitable decoder bugs, credentials, private audio or crash dumps
-in public issues. Use GitHub's **Security → Report a vulnerability** when that
-option is enabled. Include the affected revision, platform, minimal reproduction
-and impact; redact private audio and unrelated data.
+If you find a security problem (for example, a crafted `.rit` or WAV file that
+crashes the decoder or corrupts memory), please report it privately using
+GitHub's **Security → Report a vulnerability** button on this repository rather
+than opening a public issue. Include the commit or version, platform, a minimal
+reproduction and the impact you observed.
 
-GitHub offers this feature for public repositories. This repository is currently
-private; reporting has not been enabled or verified. At publication, the maintainer
-must enable it and verify the report form before announcing the project. See
-[the publication procedure](docs/RELEASE_VALIDATION.md#private-vulnerability-reporting).
-If the option is absent, do not publish vulnerability details. Ask the maintainer
-for a private reporting route without including the vulnerability itself.
-
-Only the maintainer should publish a coordinated advisory or fixed release.
+Please don't attach private audio or crash dumps containing unrelated data.
+Fixes are made on a best-effort basis, and a fixed release or advisory will be
+published by the maintainer.

@@ -76,7 +76,7 @@ void tests() {
         auto x=render(a,input,channels,1),y=render(b,input,channels,1025);
         compare(x,y,0,"Plugin depends on host block size");
         // Compare wrapper to direct core after interleave conversion.
-        bf::Engine core(static_cast<int>(rate),channels);
+        classic::Engine core(static_cast<int>(rate),channels);
         std::vector<float> reference(input.size());core.process(input.data(),reference.data(),4096);
         compare(x,reference,2e-7f,"Default plugin differs from DSP core");
         // Runtime parameter change: smoothing must consume samples, not callbacks.

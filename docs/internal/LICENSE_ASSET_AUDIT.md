@@ -65,5 +65,5 @@ Linux archive path/hash/permission checks and extracted CLI source reconstructio
 were exercised. This addresses the earlier source-link-only packaging gap. The
 original findings above describe the earlier revision; final Mac/Windows archives
 and any changed SDK/dependency configuration still require distribution review.
-See PACKAGING.md and reports/release-hardening.json. No independent legal
+See PACKAGING.md and docs/internal/release-hardening.json. No independent legal
 certification or proprietary-license decision is implied.

@@ -4,7 +4,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
-#include "../src/bitfamine.hpp"
+#include "../src/classic_engine.hpp"
 #include "../src/rit_stream.hpp"
 #include "SpectrumTap.h"
 
@@ -92,7 +92,7 @@ public:
 
 private:
     static constexpr int maxChannels = 2;
-    static constexpr int dryDelaySamples = bf::Engine::latencySamples();
+    static constexpr int dryDelaySamples = classic::Engine::latencySamples();
     static constexpr int streamDelaySamples = static_cast<int> (rit::block);
     static constexpr double parameterSmoothingSeconds = 0.005;
 
@@ -115,7 +115,7 @@ private:
     void updateSmootherTargets() noexcept;
     void processAudio (juce::AudioBuffer<float>&, juce::MidiBuffer&, bool forceBypass) noexcept;
 
-    std::unique_ptr<bf::Engine> engine;
+    std::unique_ptr<classic::Engine> engine;
     std::unique_ptr<rit::Streaming> stream;
     int preparedChannels = 2;
     int preparedSampleRate = 0;
