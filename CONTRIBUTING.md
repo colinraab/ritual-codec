@@ -15,6 +15,9 @@ validation. Run the CLI/engine tests locally; plugin changes also need the plugi
 processor tests and a DAW smoke test on an available platform. Include the OS,
 compiler, sample rate and buffer size for audio issues. See docs/BUILDING.md.
 
+Format C++ changes with the repository's `.clang-format` (for example
+`clang-format -i src/main.cpp`); JUCE-style spacing and Allman braces throughout.
+
 Audio callbacks must not allocate, lock, access files or wait. Preserve bounded
 parser behavior, explicit packet budgets, latency alignment and session loading.
 Include regression tests for meaningful behavioral or safety fixes.

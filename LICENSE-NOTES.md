@@ -16,7 +16,8 @@ This project has no commercial JUCE license bundled with it. The fact that the
 CLI does not depend on JUCE does not change this project's chosen source license.
 
 The audio examples are third-party music under CC BY 4.0, not AGPL. See
-ATTRIBUTION.md; attribution is also embedded in generated comparison WAVs.
+ATTRIBUTION.md; attribution is also embedded in generated comparison WAVs and in
+the README demo MP3 (docs/audio/).
 No ownership of third-party music or endorsement by its creator is claimed.
 
 IBM Plex Mono is bundled under the SIL Open Font License 1.1. See

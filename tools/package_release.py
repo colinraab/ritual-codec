@@ -56,6 +56,7 @@ SOURCE_ASSET_FILES = (
 SOURCE_DOC_FILES = (
     "docs/BITSTREAM.md",
     "docs/BUILDING.md",
+    "docs/INSTALLING.md",
     "docs/PACKAGING.md",
     "docs/RELEASE_VALIDATION.md",
 )

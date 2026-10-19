@@ -1,161 +1,160 @@
 # Ritual Codec
 
-**Unreleased experimental preview (0.2.0).** See the [changelog](CHANGELOG.md)
-and [release validation matrix](docs/RELEASE_VALIDATION.md) for tested scope.
+An experimental, low-latency audio effect that degrades music on purpose:
+frequency bands compete for a scarce precision budget, old timbres linger in
+memory, and coarse digital clocks turn tails into texture, while **Punch** keeps
+drum attacks hitting hard.
 
-An experimental, low-latency music degradation effect. Frequency bands compete
-for spectral precision, old timbres linger, and coarse digital clocks turn tails
-into texture. **Punch** protects attacks for rhythmic material.
+Available as a **VST3** and **Audio Unit** plug-in (built with JUCE), plus two
+small command-line tools. Free and open source under the AGPL.
 
-The repository contains a dependency-free C++ DSP engine, WAV command-line tool,
-and a JUCE 9.0.2 plugin project targeting **VST3** and **Audio Unit (AU)**. It is
-currently an effect prototype; its Budget remains an artistic control, not kbps.
-A separate experimental `ritual-stream` CLI now encodes and decodes actual `.rit`
-files with an explicit byte budget. See [the bitstream experiment](docs/BITSTREAM.md)
-for commands, the versioned format, tests and limitations. The header's CODEC button enables this experimental path in the plugin. Classic
-remains the default; RIT has a different sound and supports Budget, Competition, Memory, Punch, Crunch, Mix,
-Output and Bypass. Both modes retain 256 samples of latency.
+![Ritual Codec plug-in interface](docs/plugin-preview.png)
 
-![Ritual Codec plugin interface](docs/plugin-preview.png)
+> **Experimental preview (0.2.0).** The sound, presets and `.rit` file format
+> may change between versions. See the [changelog](CHANGELOG.md) and
+> [what has been tested](docs/RELEASE_VALIDATION.md).
 
-## Build only what you need
+## Listen
 
-Requires CMake 3.22+ and a C++17 compiler. Plugin builds fetch JUCE at a pinned
-revision; CLI-only builds do not download or link JUCE.
+[**▶ Before/after demo (MP3, 38 s)**](docs/audio/ritual-codec-demo.mp3)
 
-```sh
-# CLI and engine tests only
-cmake -S . -B build-cli -DCMAKE_BUILD_TYPE=Release \
-  -DRITUAL_BUILD_VST3=OFF -DRITUAL_BUILD_AU=OFF
-cmake --build build-cli --config Release
-ctest --test-dir build-cli -C Release --output-on-failure
+| Time | Section |
+| --- | --- |
+| 0:00 | Original |
+| 0:06 | Subtle |
+| 0:13 | Damaged |
+| 0:19 | Damaged without Punch |
+| 0:26 | Extreme |
+| 0:32 | RIT bitstream mode, 64 kbps |
 
-# VST3 plugin (and CLI)
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DRITUAL_BUILD_VST3=ON
-cmake --build build --config Release
+Music: "EDM Detection Mode" by Kevin MacLeod ([incompetech.com](https://incompetech.com)),
+licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); excerpted,
+attenuated and processed. See [ATTRIBUTION.md](ATTRIBUTION.md).
 
-# Add Audio Unit on macOS
-cmake -S . -B build-mac -DCMAKE_BUILD_TYPE=Release \
-  -DRITUAL_BUILD_VST3=ON -DRITUAL_BUILD_AU=ON
-cmake --build build-mac --config Release
-```
+## Two modes
 
-See [build and installation instructions](docs/BUILDING.md) for dependencies,
-platform details, artifact paths, and CI download steps. Installing the CLI and
-plugin are independent; plugins include the engine internally. No automatic
-copy into system plugin directories is performed during ordinary builds.
+The **CODEC** button in the plug-in header switches between:
 
-The sidebar overlays the original and processed spectra to show spectral change.
-Numeric controls use bundled IBM Plex Mono.
+- **Classic** (default): a spectral degradation effect. Budget is an artistic
+  control, not a real bitrate.
+- **RIT**: audio really is encoded into small packets at a fixed byte budget
+  and decoded again, and the plug-in shows the actual packet bitrate. It sounds
+  different from Classic, with more blocky, codec-like artifacts. See
+  [the bitstream notes](docs/BITSTREAM.md).
+
+Both modes have a fixed latency of 256 samples (5.3 ms at 48 kHz), which is
+reported to the host so Mix and Bypass stay aligned.
 
 ## Controls
 
-These descriptions apply to Classic mode. In RIT mode, Budget selects packet
-size; Competition, Memory, Punch and Crunch shape the encoded audio.
-Mix, Output and Bypass remain active; Clock, Downsample and Classic presets
-are disabled. See [RIT control meanings](docs/BITSTREAM.md#plugin-experiment). The header CODEC button
-switches modes and RIT displays its actual packet bitrate.
+| Control | Classic | RIT |
+| --- | --- | --- |
+| Budget | Precision available to the spectral quantizers | Packet size (bitrate) |
+| Competition | How strongly loud bands steal precision from quieter ones | ✓ |
+| Memory | How long previous spectral shapes persist | ✓ |
+| Punch | Extra attack precision plus a brief blend toward the original attack | ✓ |
+| Crunch | Coarse time-domain amplitude quantization | ✓ |
+| Clock | Number of 64-sample hops between spectral-shape refreshes | — |
+| Downsample | Sample-and-hold interval, deliberately without anti-aliasing | — |
+| Mix | Latency-aligned dry/wet balance | ✓ |
+| Output | Output gain in dB | ✓ |
+| Bypass | Latency-aligned unprocessed signal | ✓ |
 
-| Control | Behavior |
-|---|---|
-| Budget | More/less precision available to the spectral quantizers |
-| Competition | How strongly energetic bands take precision from other bands |
-| Memory | Persistence of previous normalized spectral shapes |
-| Punch | Extra attack precision and a brief blend toward the original attack |
-| Crunch | Coarse time-domain amplitude quantization |
-| Clock | Number of 64-sample hops between ordinary shape refreshes |
-| Downsample | Time-domain sample-and-hold interval, deliberately without an antialias filter |
-| Mix | Latency-aligned dry/wet balance (plugin) |
-| Output | Output gain in dB (plugin) |
-| Bypass | Latency-aligned unprocessed signal (plugin) |
+The **Subtle**, **Damaged**, **No Punch** and **Extreme** presets (Classic mode)
+are good starting points. There is no output limiter: extreme settings can
+change peak level, stereo width and tonal balance, so start with moderate
+monitoring levels.
 
-Subtle, Damaged, No Punch, and Extreme presets provide starting points. At the
-extremes, artifacts can change stereo width, peak levels, and tonal balance.
-Continuous automation is smoothed by the plugin; the integer clocks remain
-intentional stepped changes. The prototype makes no promise of transparent
-reconstruction at maximum Budget. Transparent mode in the CLI is a diagnostic
-pass-through using the transform path.
+## Install
 
-## Command-line rendering
+Download a build for your platform from the
+[Releases page](https://github.com/colinraab/ritual-codec/releases) and follow
+[the install guide](docs/INSTALLING.md). Builds are unsigned, and the guide
+covers the one extra step macOS needs.
 
-The original Make build remains available and uses no JUCE:
+### Build from source
 
-```sh
-make
-./build/ritual-codec input.wav output.wav .22 .8 .78 1 .65 8 3
-```
-
-Positional controls are Budget, Competition, Memory, Punch, Crunch, Clock,
-Downsample, then optional Transparent (0 or 1). The first five are 0–1,
-Clock is 1–64, Downsample is 1–32. Input: PCM16/24 or IEEE float32 RIFF WAV,
-mono/stereo; output: float32 WAV with engine delay trimmed and tail flushed.
-For MP3/FLAC and extended WAV input in both CLIs, enable the optional
-`RITUAL_CLI_SNDFILE` backend; see [setup and commands](docs/BUILDING.md#mp3-flac-and-24-bit-wav-input).
-The built-in WAV reader does not support WAVE_FORMAT_EXTENSIBLE or RF64.
-
-## Listen and reproduce the prototype measurements
+You need CMake 3.22+ and a C++17 compiler. Plug-in builds download JUCE 9.0.2
+at a pinned commit. CLI-only builds have no dependencies at all.
 
 ```sh
-python3 tools/fetch_demo_audio.py
-python3 -m pip install -r requirements-dev.txt
-make
-python3 tools/render_and_measure.py
+# VST3 plug-in, CLIs and tests
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+
+# Add the Audio Unit on macOS
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DRITUAL_BUILD_AU=ON
+
+# CLI tools only (no JUCE)
+cmake -S . -B build-cli -DCMAKE_BUILD_TYPE=Release \
+  -DRITUAL_BUILD_VST3=OFF -DRITUAL_BUILD_AU=OFF
 ```
 
-The fetch step requires ffmpeg. It downloads and verifies Kevin MacLeod's
-**EDM Detection Mode** under CC BY 4.0 and extracts two short sections. The render
-script makes five comparison conditions with one common source attenuation.
-See [audio instructions](audio/README.md) and [attribution](ATTRIBUTION.md).
-Audio and generated binaries are not stored in git history.
+Builds are not copied into your system plug-in folders automatically. See
+[BUILDING.md](docs/BUILDING.md) for Linux packages, where built files end up,
+offline JUCE builds and optional MP3/FLAC input.
 
-The original v0.1 measurements are in [reports/RESULTS.md](reports/RESULTS.md).
-They characterize the DSP engine on one already-MP3-encoded track, not native
-plugin performance or a comprehensive listening evaluation. The engine reports
-**256 samples of delay: 5.333 ms at 48 kHz**, excluding host/device buffering.
-The plugin reports this latency to the host and aligns dry audio and bypass.
+## Command-line tools
 
-## Architecture
+**`ritual-codec`** renders the Classic effect offline (`make` also builds it):
 
-- `src/bitfamine.hpp`: fixed-storage DSP core; historical internal filename/name.
-- `src/main.cpp`: portable WAV reader/writer and offline command-line harness.
-- `plugin/`: JUCE processor, parameter/state handling, editor and presets.
-- `tests/`: engine and plugin integration checks.
-- `.github/workflows/`: platform builds and separately packaged artifacts.
-- `tools/`: licensed demo retrieval, rendering and packaging.
+```sh
+ritual-codec input.wav output.wav [budget competition memory punch crunch clock downsample]
+ritual-codec input.wav damaged.wav .22 .8 .78 1 .65 8 3
+```
 
-The engine uses a 256-point FFT with 64-sample hops, linked stereo allocation,
-16 logarithmic bin groups, normalized magnitude memory, complex coefficient
-quantization and time-domain degradation. No memory allocation occurs in its
-sample-processing method. The plugin wraps it with bounded buffers and
-latency-aligned mixing. See [prototype design notes](docs/PROTOTYPE.md) for the
-original algorithm and measurement details; those notes describe v0.1.
+Budget, Competition, Memory, Punch and Crunch take values from 0 to 1, Clock
+from 1 to 64 and Downsample from 1 to 32.
 
-## Status and next steps
+**`ritual-stream`** encodes real `.rit` files and decodes them back to audio:
 
-The release-hardening revision passed six local Linux test suites, including
-decoder and packaging checks. Earlier Windows/macOS builds and AU validation
-passed during development; they do not qualify the current revision. Latest
-Mac/Windows and DAW checks remain pending. See the current
-[release validation matrix](docs/RELEASE_VALIDATION.md);
-[earlier plugin validation](reports/PLUGIN_VALIDATION.md) is historical evidence.
+```sh
+ritual-stream encode input.wav song.rit 96 --punch 0.8 --crunch 0.2
+ritual-stream decode song.rit decoded.wav
+```
 
-The artistic goal is intentional spectral breakup with preserved rhythmic impact.
-The interface and sound are experimental. Listen before relying on presets in
-productions; future algorithm versions will need explicit preset compatibility.
+Both tools read 16/24-bit PCM or 32-bit float WAV (mono or stereo) and write
+32-bit float WAV with the processing delay removed. Building with
+`-DRITUAL_CLI_SNDFILE=ON` adds MP3 and FLAC input through libsndfile.
 
-Possible next steps: independent band clocks, a dedicated low-band path, separate
-attack-rescue and decay controls, and further tuning of the opt-in bitstream
-after listening validation. The Classic plugin Punch implementation
-uses original PCM during attacks, so its preservation is not free compression.
+## How it works
+
+The Classic engine uses a 256-point FFT with 64-sample hops, 16 logarithmic
+bands that share a precision budget (linked across stereo channels),
+normalized magnitude memory, complex coefficient quantization and time-domain
+degradation. It runs with fixed storage and never allocates in the audio
+callback. The RIT path uses 128-sample DCT blocks with an explicit byte budget
+per packet, and a time-domain packet type for sharp transients. See
+[PROTOTYPE.md](docs/PROTOTYPE.md) for the original engine design and
+measurements, and [BITSTREAM.md](docs/BITSTREAM.md) for the `.rit` format.
+
+| Path | Contents |
+| --- | --- |
+| `src/classic_engine.hpp` | Classic DSP engine (header-only, no dependencies) |
+| `src/rit_stream.hpp` | `.rit` encoder, decoder and streaming implementation |
+| `src/main.cpp`, `src/rit_main.cpp` | The two command-line tools |
+| `plugin/` | JUCE processor, editor, presets and spectrum display |
+| `tests/` | Engine, bitstream, fuzz-style decoder, plug-in and packaging tests |
+| `tools/` | Demo audio, measurement and release packaging scripts |
+| `reports/` | Measurement results referenced by the docs |
+
+## Status
+
+Linux builds and the automated test suites pass. Earlier development builds
+passed on macOS (including Audio Unit validation) and Windows, and the current
+version still needs DAW testing on those platforms. See [RELEASE_VALIDATION.md](docs/RELEASE_VALIDATION.md).
+
+Ideas for later: independent band clocks, a dedicated low-band path, separate
+attack and decay controls, and further tuning of the RIT bitstream.
+
+Bug reports and ideas are welcome; please read [CONTRIBUTING.md](CONTRIBUTING.md)
+first, and report security issues as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
-Source and documentation: **AGPL-3.0-or-later**, using JUCE's AGPL open-source
-option. See [LICENSE](LICENSE) and [licensing notes](LICENSE-NOTES.md).
-The CC BY 4.0 music retains its separate attribution and license. This project
-is not affiliated with JUCE or the music's creator.
-
-## Contributing and security
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
-Please keep private audio and security reports out of public issues.
+Ritual Codec is licensed under the
+[GNU Affero General Public License v3.0 or later](LICENSE). Plug-in builds use
+JUCE under its AGPLv3 option. The bundled IBM Plex Mono and Cormorant Garamond
+fonts are under the SIL Open Font License, and the demo music is CC BY 4.0. See
+[LICENSE-NOTES.md](LICENSE-NOTES.md) and [ATTRIBUTION.md](ATTRIBUTION.md) for details.

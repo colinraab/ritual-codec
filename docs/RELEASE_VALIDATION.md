@@ -26,7 +26,7 @@ python3 tools/audit_history.py --repo . > history-review.json
 ```
 
 Review findings manually; exit zero means no pattern matches, not certification.
-Review historical PNGs and font metadata as well. reports/history-audit.json
+Review historical PNGs and font metadata as well. docs/internal/history-audit.json
 records the original text/font audit and the 2026-09-20 completion of all nine
 outstanding historical preview reviews through the GitHub plugin. No visible
 private information or PNG text/EXIF metadata was found; decoded blob hashes
@@ -85,9 +85,9 @@ At the separately approved publication step, before announcements or binaries:
    submit a fake advisory merely to test the button.
 3. Ensure the maintainer watches **Security alerts** (or All Activity) and has
    the intended GitHub notification delivery enabled.
-4. Record the date and verification evidence here, and update SECURITY.md to
-   remove its pending-status wording. If unavailable, establish a private
-   contact route before announcing the project.
+4. Record the date and verification evidence here. SECURITY.md already points
+   reporters to this button. If unavailable, add a private contact route to
+   SECURITY.md before announcing the project.
 
 Source: [GitHub configuration instructions](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository),
 checked 2026-09-20. Status: pending publication; no settings or visibility changed.

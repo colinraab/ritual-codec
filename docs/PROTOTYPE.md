@@ -37,7 +37,7 @@ Requires a C++17 compiler and Make; the engine has no third-party dependencies.
 ```sh
 make
 make test
-./build/bitfamine audio/01_source.wav my_render.wav .22 .8 .78 1 .65 8 3
+./build/ritual-codec audio/01_source.wav my_render.wav .22 .8 .78 1 .65 8 3
 ```
 
 Arguments after the two paths: budget, competition, memory, punch, crunch,
@@ -51,7 +51,7 @@ and the end flushed. The CLI loads files into memory; the engine itself streams.
 A direct compiler invocation also works:
 
 ```sh
-c++ -O3 -std=c++17 src/main.cpp -o bitfamine
+c++ -O3 -std=c++17 src/main.cpp -o build/ritual-codec
 ```
 
 Reproduce measurements and demos with Python 3, numpy, and scipy:
@@ -67,12 +67,12 @@ Only the Linux build was executed here; macOS and Windows builds are unverified.
 ## Embed the engine
 
 ```cpp
-#include "src/bitfamine.hpp"
-bf::Params parameters;
-bf::Engine engine(48000, 2, parameters); // construct before audio callbacks
+#include "src/classic_engine.hpp"
+classic::Params parameters;
+classic::Engine engine(48000, 2, parameters); // construct before audio callbacks
 // For interleaved stereo floats; any nonnegative block length is accepted.
 engine.process(input, output, frameCount);
-// Host latency: bf::Engine::latencySamples() == 256.
+// Host latency: classic::Engine::latencySamples() == 256.
 ```
 
 State is fixed-size and no heap allocation, locks, or I/O occur inside process.
