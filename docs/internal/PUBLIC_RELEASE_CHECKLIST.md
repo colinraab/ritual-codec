@@ -25,8 +25,8 @@ of truth for test scope and remaining compatibility limits.
 - [x] Keep CI manual-only, with read-only repository permissions, pinned actions,
   nonpersistent checkout credentials, a 45-minute limit and seven-day retention.
   The current workflow was checked locally; no hosted run was started.
-- [x] Prepare version 0.2.0 as an unreleased preview. No tag or public release
-  has been published.
+- [x] Prepare the experimental 0.2.0 release documentation and Mac signing
+  notice. The repository is public; a release draft is being prepared.
 
 ## Completed macOS arm64 candidate checks
 
@@ -64,12 +64,14 @@ versions, measurements and limitations.
   platform/SDK configuration. Current local inventory is technical evidence,
   not independent legal certification.
 - [ ] Rerun history screening against the final release ref and record its commit.
-- [ ] At separately approved publication, enable private vulnerability reporting
-  and verify the report form and maintainer notifications. Follow
+- [x] Confirm private vulnerability reporting is enabled on the public repo
+  through the GitHub API (2026-10-19).
+- [ ] Verify the report form and maintainer notification delivery. Follow
   [the publication sequence](../RELEASE_VALIDATION.md#private-vulnerability-reporting).
 - [ ] Publish source and binaries with accurate architecture, minimum OS and
   signing labels. Repository visibility and release publication require an
-  explicit owner decision.
+  explicit owner decision. The repository is now public; release publication
+  remains separate from preparation of the draft.
 
 ## Optional follow-up
 

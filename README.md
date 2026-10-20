@@ -10,9 +10,15 @@ and WAV exporter**, and two command-line tools. Free and open source under the A
 
 ![Current Ritual Codec plug-in in Classic mode, with the Damaged preset and live spectrum display](docs/plugin-preview.png)
 
-> **Experimental preview (0.2.0).** The sound, presets and `.rit` file format
+> **Experimental release (0.2.0).** The sound, presets and `.rit` file format
 > may change between versions. See the [changelog](CHANGELOG.md) and
 > [what has been tested](docs/RELEASE_VALIDATION.md).
+
+> **Mac download notice:** the app and plug-ins have **no Apple Developer ID
+> signing and are not notarized**. They use ad-hoc signatures, so macOS may block
+> opening them or show an unidentified-developer warning. Read the
+> [Mac opening instructions](docs/INSTALLING.md#macos-ad-hoc-signed-builds) before
+> installing. These downloads are **Apple Silicon only, macOS 26.6 or later**.
 
 ## Listen
 
@@ -88,11 +94,12 @@ monitoring levels.
 
 ## Install
 
-When prebuilt downloads are available, get the archive for your platform from
-the [Releases page](https://github.com/colinraab/ritual-codec/releases) and follow
-[the install guide](docs/INSTALLING.md). Version 0.2.0 is currently unreleased.
-The locally tested Mac preview is Apple Silicon only and requires macOS 26.6
-or later. It is ad-hoc signed, without Developer ID signing or notarization.
+Get the **standalone app**, **AU**, **VST3** or **CLI** archive from the
+[0.2.0 release](https://github.com/colinraab/ritual-codec/releases/tag/v0.2.0) and
+follow [the install guide](docs/INSTALLING.md). Mac downloads are Apple Silicon
+only and require macOS 26.6 or later. They have no Apple Developer ID signing
+or notarization; see the notice above. Windows, Linux and Intel Mac binaries
+are not included in this release. Source builds remain available.
 
 ### Build from source
 

@@ -1,4 +1,4 @@
-# Packaging the experimental preview
+# Packaging an experimental release
 
 Packaging does not publish a release. Build and test from a clean source tree
 first; do not modify project or JUCE sources between building and packaging.
@@ -18,7 +18,7 @@ Debug/Release copies are rejected rather than guessed.
 
 Each CLI archive includes **both** `ritual-codec` and `ritual-stream`. A missing
 executable is an error. Plugin bundles are packaged separately by format. The standalone archive contains
-`STANDALONE/Ritual Codec.app`. Pass `--version 0.2.0-preview.1` to include
+`STANDALONE/Ritual Codec.app`. Pass `--version 0.2.0` to include
 a version label in filenames and provenance. The label does not change the app version. Every
 archive contains documentation, font/project notices, `SHA256SUMS.txt`, build
 provenance and a project source ZIP drawn from explicit source directories and

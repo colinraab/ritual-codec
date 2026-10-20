@@ -1,8 +1,9 @@
 # Release validation
 
-Ritual Codec 0.2.0 is an **unreleased experimental preview**. A successful compile
-is not a DAW compatibility claim. Do not publish binaries until the matching
-platform checks below are completed and recorded against a commit.
+Ritual Codec 0.2.0 is an **experimental release**. The download set covers
+macOS arm64 only, with the local evidence and compatibility limits below.
+A successful compile is not a broader DAW compatibility claim. Additional
+platforms need their own builds and host validation before binaries are offered.
 
 | Platform / format | Current evidence | Still required |
 | --- | --- | --- |
@@ -13,7 +14,7 @@ platform checks below are completed and recorded against a commit.
 ## macOS local candidate, 2026-10-19
 
 The candidate is an unreleased preview built from the working tree based on
-`ca158e0074bee12026be82e39e14286f429872dd`. Archive provenance identifies
+`f57311a7c272cd8fb862e35d13a0348226b77267`. Archive provenance identifies
 the base revision and whether tracked source was modified. Archive source ZIPs
 and checksums identify the packaged source and binaries.
 
@@ -58,6 +59,20 @@ and checksums identify the packaged source and binaries.
 - No second-machine, Intel, physical device-disconnect or downloaded-Gatekeeper
   test has been completed. Automated rendering is not human listening approval.
 - No public release, hosted CI run, Developer ID signing or notarization occurred.
+
+## Version 0.2.0 distribution
+
+The release uses the same application and DSP sources as the locally tested
+candidate; subsequent changes update documentation and commit metadata. The release tag identifies the final source revision.
+All four archives are rebuilt and packaged from that clean revision, with
+matching source, licenses, provenance and checksums. Only macOS arm64 binaries
+are offered; their minimum deployment target remains macOS 26.6.
+
+Second-machine installation and downloaded Gatekeeper behavior remain untested.
+A second Mac is unavailable. Developer ID signing and notarization are absent.
+These limits are disclosed in the README, install guide and release notes; they
+remain follow-up work for broader qualification. Final owner listening approval
+is separate from automated checks and the recorded host tests.
 
 ## Local gates
 
@@ -123,12 +138,12 @@ workflow publishes a release or changes repository visibility.
 
 ## Private vulnerability reporting
 
-GitHub documents private vulnerability reporting for **public repositories**.
-It cannot be treated as a completed pre-publication setting on this private repo.
-At the separately approved publication step, before announcements or binaries:
+The repository is public. On 2026-10-19, the GitHub API confirmed private
+vulnerability reporting is enabled (`enabled: true`). Before announcements,
+the maintainer should also verify the report form and notification delivery:
 
-1. In repository **Settings → Advanced Security**, enable **Private vulnerability
-   reporting** (under the Security and quality sidebar section).
+1. Keep **Private vulnerability reporting** enabled in repository
+   **Settings → Advanced Security**.
 2. Open **Security → Advisories** and verify **Report a vulnerability** opens
    the private report form. Verify from a non-admin account if available; do not
    submit a fake advisory merely to test the button.
@@ -139,7 +154,8 @@ At the separately approved publication step, before announcements or binaries:
    SECURITY.md before announcing the project.
 
 Source: [GitHub configuration instructions](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository),
-checked 2026-09-20. Status: pending publication; no settings or visibility changed.
+checked 2026-09-20. Reporting enabled status verified 2026-10-19; the report form
+and notification delivery have not been independently verified.
 
 ## Validation ownership
 

@@ -1,6 +1,6 @@
 # Installing Ritual Codec
 
-Prebuilt downloads (when available) are on the
+Prebuilt Apple Silicon Mac downloads are on the
 [Releases page](https://github.com/colinraab/ritual-codec/releases). Each
 platform has separate archives:
 
@@ -12,9 +12,10 @@ platform has separate archives:
 | `ritual-codec-<platform>-cli.zip` | `bin/ritual-codec` and `bin/ritual-stream` command-line tools |
 
 Versioned filenames insert the version before the platform label, for example
-`ritual-codec-0.2.0-preview.1-macos-arm64-standalone.zip`. The local preview is
+`ritual-codec-0.2.0-macos-arm64-standalone.zip`. Version 0.2.0 is
 Apple Silicon only and requires macOS 26.6 or later; other architectures and older
-macOS releases have not been qualified. See [release validation](RELEASE_VALIDATION.md).
+macOS releases have not been qualified. Windows, Linux and Intel Mac binaries
+are not included in this release. See [release validation](RELEASE_VALIDATION.md).
 
 Every archive also includes licences, third-party notices, build provenance,
 SHA-256 checksums and the matching source code.
@@ -43,10 +44,19 @@ Copy the whole `.vst3` or `.component` bundle (it is a folder), not its contents
 
 ## macOS: ad-hoc signed builds
 
-Mac bundles are ad-hoc signed, without an Apple Developer ID or notarization.
-Downloaded Gatekeeper behavior has not been tested on a second Mac. If macOS
-blocks a downloaded build you trust, clear the download quarantine flag for that
-bundle only, using the path where you installed it:
+**The app and plug-ins have no Apple Developer ID signing and are not notarized.**
+Their ad-hoc signatures do not identify an Apple-verified publisher. macOS may
+block a downloaded build or show an unidentified-developer warning. Downloaded
+Gatekeeper behavior has not been tested on a second Mac.
+
+For the standalone app, first try opening it. If macOS blocks it and you trust
+the download, open **System Settings → Privacy & Security** and use **Open
+Anyway** for Ritual Codec if offered, then confirm opening. See
+[Apple’s opening instructions](https://support.apple.com/en-us/102445).
+
+If a trusted plug-in remains blocked, or the app has no Open Anyway option,
+clear the download quarantine flag for that installed bundle only. Run only the
+line for the bundle you installed, adjusting its path if necessary:
 
 ```sh
 xattr -dr com.apple.quarantine "/Applications/Ritual Codec.app"

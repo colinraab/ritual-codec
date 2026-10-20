@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 — unreleased experimental preview
+## 0.2.0 — 2026-10-19 (experimental release)
 
 - Optional standalone file app with audio preview, seeking, output-device selection,
   settings restoration and background 32-bit float WAV export.
@@ -34,4 +34,7 @@
   A second Mac, Intel/universal builds and latest Windows/Linux host qualification
   remain open. macOS bundles are ad-hoc signed, without Developer ID or notarization.
 
-No public release has been published from this changelog entry.
+First release packages the Apple Silicon standalone app, AU, VST3 and WAV-only
+CLIs. Matching source, notices and checksums accompany every archive. No Windows,
+Linux or Intel Mac binaries are included. Downloaded installation on a second
+Mac and broader compatibility remain unverified; see the release notes.
