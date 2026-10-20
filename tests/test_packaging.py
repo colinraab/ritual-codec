@@ -17,9 +17,8 @@ spec.loader.exec_module(pkg)
 
 class PackagingTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.base = Path(self.temp.name)
+        self.base = Path(tempfile.mkdtemp(prefix="ritual-packaging-test-"))
+        self.addCleanup(pkg.discard_generated, self.base)
         self.root = self.base / 'project'
         self.build = self.root / 'build'
         self.output = self.root / 'dist'
@@ -27,6 +26,7 @@ class PackagingTests(unittest.TestCase):
         self.output.mkdir()
         for name in ['LICENSE', 'LICENSE-NOTES.md', 'ATTRIBUTION.md', 'README.md',
                      'CMakeLists.txt', 'reports/source_provenance.json', 'docs/BUILDING.md',
+                     'docs/INSTALLING.md', 'docs/PACKAGING.md',
                      'assets/fonts/OFL.txt', 'assets/fonts/CormorantGaramond-OFL.txt',
                      'src/main.cpp', 'src/rit_main.cpp']:
             self.write(self.root / name, 'test fixture\n')
@@ -61,7 +61,7 @@ class PackagingTests(unittest.TestCase):
                 self.assertFalse(any('/build/' in n or '/dist/' in n for n in src.namelist()))
 
     def test_missing_stream_is_error(self):
-        (self.build / 'ritual-stream').unlink()
+        (self.build / 'ritual-stream').rename(self.base / 'preserved-stream')
         with self.assertRaises(pkg.PackagingError):
             pkg.find_cli_outputs(self.build)
         self.assertEqual(list(self.output.glob('*.zip')), [])
@@ -71,7 +71,7 @@ class PackagingTests(unittest.TestCase):
         with self.assertRaises(pkg.PackagingError):
             pkg.find_cli_outputs(self.build)
 
-    def test_plugin_bundles_configured_dependency_and_notices(self):
+    def dependency_fixture(self):
         juce = self.base / 'local-JUCE'
         for name in ['LICENSE.md', 'JUCE.spdx.json', 'CMakeLists.txt',
                      'modules/thirdparty/NOTICE', 'extras/Build/CMake/support.cmake']:
@@ -81,6 +81,10 @@ class PackagingTests(unittest.TestCase):
         self.write(juce / 'modules/juce_core/system/juce_StandardHeader.h',
                    '#define JUCE_MAJOR_VERSION 9\n#define JUCE_MINOR_VERSION 0\n#define JUCE_BUILDNUMBER 2\n')
         self.write(self.build / 'CMakeCache.txt', f'RITUAL_JUCE_SOURCE_DIR:PATH={juce}\n')
+        return juce
+
+    def test_plugin_bundles_configured_dependency_and_notices(self):
+        self.dependency_fixture()
         bundle = self.build / 'Release/Ritual.vst3'
         self.write(bundle / 'Contents/test.bin', 'plugin fixture')
         real_run = subprocess.run
@@ -101,6 +105,39 @@ class PackagingTests(unittest.TestCase):
                 self.assertIn('ritual-codec/JUCE/modules/thirdparty/NOTICE', names)
                 self.assertIn('ritual-codec/JUCE/extras/Build/CMake/support.cmake', names)
                 self.assertFalse(any('/.git/' in n or '/build/' in n for n in names))
+
+    def test_standalone_archive_contains_app_icon_and_corresponding_source(self):
+        self.dependency_fixture()
+        bundle = self.build / 'RitualCodecApp_artefacts/Release/Ritual Codec.app'
+        self.write(bundle / 'Contents/MacOS/Ritual Codec', 'app fixture')
+        (bundle / 'Contents/MacOS/Ritual Codec').chmod(0o755)
+        self.write(bundle / 'Contents/Resources/AppIcon.icns', 'icon fixture')
+        self.write(self.root / 'standalone/Main.cpp', 'standalone source')
+        self.write(self.root / 'standalone/assets/generate-icon.swift', 'icon source')
+        self.write(self.build / '_deps/JUCE/helper.app/Contents/helper', 'exclude helper')
+        self.assertEqual(pkg.find_standalone_outputs(self.build), [bundle])
+        real_run = subprocess.run
+        def fake_signature_only(command, **kwargs):
+            if command[0] == '/usr/bin/codesign':
+                return subprocess.CompletedProcess(command, 0)
+            return real_run(command, **kwargs)
+        with mock.patch.object(pkg.subprocess, 'run', side_effect=fake_signature_only) as run:
+            archive = pkg.make_archive(self.root, self.build, self.output, 'macos-arm64',
+                                       'standalone', [bundle], '0.2.0-preview.1')
+        self.assertEqual(archive.name, 'ritual-codec-0.2.0-preview.1-macos-arm64-standalone.zip')
+        if pkg.sys.platform == 'darwin':
+            self.assertTrue(any(call.args[0][0] == '/usr/bin/codesign'
+                                and call.args[0][-1].endswith('.app') for call in run.call_args_list))
+        with zipfile.ZipFile(archive) as z:
+            self.assertIn('STANDALONE/Ritual Codec.app/Contents/Resources/AppIcon.icns', z.namelist())
+            with zipfile.ZipFile(io.BytesIO(z.read('source/ritual-codec-source.zip'))) as src:
+                self.assertIn('ritual-codec/standalone/Main.cpp', src.namelist())
+                self.assertIn('ritual-codec/standalone/assets/generate-icon.swift', src.namelist())
+                self.assertIn('ritual-codec/JUCE/CMakeLists.txt', src.namelist())
+        duplicate = self.build / 'RitualCodecApp_artefacts/Debug/Ritual Codec.app'
+        duplicate.mkdir(parents=True)
+        with self.assertRaises(pkg.PackagingError):
+            pkg._validate_sources('standalone', pkg.find_standalone_outputs(self.build), self.build)
 
     def test_conflicting_dependency_paths_are_error(self):
         self.write(self.build / 'CMakeCache.txt',

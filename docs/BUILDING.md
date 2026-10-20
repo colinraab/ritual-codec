@@ -8,6 +8,7 @@ Ritual Codec has the following CMake switches:
 | `RITUAL_BUILD_CLI` | `ON` | Builds the `ritual-codec` WAV renderer and `ritual-stream` encoder/decoder. |
 | `RITUAL_BUILD_VST3` | `ON` | Builds the VST3 plug-in. |
 | `RITUAL_BUILD_AU` | `OFF` | Builds the Audio Unit on Apple platforms. |
+| `RITUAL_BUILD_STANDALONE` | `OFF` | Builds the standalone file player and processed WAV exporter. Requires JUCE. |
 | `RITUAL_BUILD_TESTS` | `ON` | Builds engine, bitstream and hardening tests; adds JUCE processor tests with plugins and packaging tests when Python is found. |
 
 The command-line renderer and engine test have no third-party dependencies. A
@@ -18,6 +19,7 @@ cmake -S . -B build/cli -DCMAKE_BUILD_TYPE=Release \
   -DRITUAL_BUILD_CLI=ON \
   -DRITUAL_BUILD_VST3=OFF \
   -DRITUAL_BUILD_AU=OFF \
+  -DRITUAL_BUILD_STANDALONE=OFF \
   -DRITUAL_BUILD_TESTS=ON
 cmake --build build/cli --parallel
 ctest --test-dir build/cli --output-on-failure
@@ -45,7 +47,7 @@ Developer ID signing and notarization are not configured here.
 
 ## JUCE dependency
 
-Plugin builds use JUCE **9.0.2**, pinned to commit
+Plugin and standalone builds use JUCE **9.0.2**, pinned to commit
 `72782788ce18c2d4d760b28e0921d6ffc6431102`. If
 `RITUAL_JUCE_SOURCE_DIR` is omitted, CMake retrieves that exact commit with
 `FetchContent`. The configure step reads JUCE's version header and stops if the
@@ -116,11 +118,13 @@ python3 tools/package_release.py \
   --platform macos-universal
 ```
 
-Pass `--kind vst3` (or `cli`, `au`, repeatable) to package only selected outputs.
+Pass `--kind vst3` (or `cli`, `au`, `standalone`, repeatable) to package only selected outputs.
 
 The resulting files are named `ritual-codec-macos-universal-cli.zip`,
 `ritual-codec-macos-universal-vst3.zip`, and
-`ritual-codec-macos-universal-au.zip` when those formats were built. The helper
+`ritual-codec-macos-universal-au.zip` when those formats were built. If enabled,
+the standalone adds `ritual-codec-macos-universal-standalone.zip`. Use `--version`
+to insert a version label before the platform name. The helper
 fails if a requested artifact is missing and never copies a plug-in into a host
 directory.
 
@@ -128,32 +132,17 @@ directory.
 
 `.github/workflows/build.yml` runs only when started with `workflow_dispatch`;
 pushes and pull requests do not start builds. Its selectable matrix
-covers Windows VST3 plus CLI, macOS universal VST3/AU plus CLI, and Linux VST3
-plus CLI. Each job uploads separate CLI, VST3, and (on macOS) AU ZIP artifacts.
+covers Windows VST3 plus CLI, macOS universal standalone/VST3/AU plus CLI, and
+Linux VST3 plus CLI. Each job uploads separate ZIPs for the formats it builds.
 No job publishes a release. The macOS job validates the AU bundle with
 `plutil` and stages it at the host's expected
 `~/Library/Audio/Plug-Ins/Components` path before running `auval`.
 
-### Download and extraction
-
-Artifacts are uploaded as the original ZIP file (`archive: false`), without
-GitHub adding another ZIP with the same name. Unzip once to reach `AU/`,
-`VST3/`, or `bin/`, plus the licenses and matching project source.
-
-macOS packages use Apple's `ditto` ZIP writer. Packaging extracts them again
-with `ditto`, checks file bytes, permissions and symlinks, and verifies plugin
-signatures. The CI bundles are ad-hoc signed, not Developer ID signed or notarized.
-
-Older runs used nested ZIPs. If Archive Utility cannot expand one, extract the
-inner ZIP into a fresh folder using Terminal (adjust the downloaded filename):
-
-```sh
-ditto -x -k "$HOME/Downloads/ritual-codec-macos-universal-au 2.zip" "$HOME/Downloads/Ritual-AU"
-```
-
-Copy `AU/Ritual Codec.component` into
-`~/Library/Audio/Plug-Ins/Components`, then restart your host to rescan.
-
+For archive contents and extraction instructions, see [INSTALLING.md](INSTALLING.md).
+macOS packaging uses `ditto` and verifies extracted files and bundle signatures.
+CI bundles are ad-hoc signed, without Developer ID signing or notarization.
+A configured CI matrix is not evidence of a completed hosted run; see
+[RELEASE_VALIDATION.md](RELEASE_VALIDATION.md).
 
 ## Local AU iteration without Actions minutes
 
@@ -179,14 +168,19 @@ architecture of your terminal; on Apple Silicon use a native terminal rather tha
 Rosetta. Subsequent builds reuse compiled files. No Apple Developer subscription
 is needed for a local ad-hoc signed build.
 
-Quit Ableton before installing. The following replaces the user-level Ritual Codec
-installation with this build:
+Quit your DAW before installing. Back up an existing user-level AU before
+replacing it with this build:
 
 ```sh
 ritual_au="build/local-au/RitualCodec_artefacts/Release/AU/Ritual Codec.component"
 codesign --force --sign - --timestamp=none "$ritual_au"
 codesign --verify --strict "$ritual_au"
 mkdir -p "$HOME/Library/Audio/Plug-Ins/Components"
+ritual_installed="$HOME/Library/Audio/Plug-Ins/Components/Ritual Codec.component"
+if test -e "$ritual_installed"; then
+  ritual_backup="$(mktemp -d "$HOME/Library/Audio/Plug-Ins/Ritual-Codec-backup.XXXXXX")"
+  ditto "$ritual_installed" "$ritual_backup/Ritual Codec.component"
+fi
 ditto "$ritual_au" "$HOME/Library/Audio/Plug-Ins/Components/Ritual Codec.component"
 killall -u "$(id -un)" AudioComponentRegistrar || true
 auval -v aufx RtCd Crrb
@@ -250,7 +244,7 @@ available to generate fixtures; FFmpeg is a test dependency, not a CLI runtime d
 
 ## If the AU still looks like an older build
 
-The new mode selector reads **CODEC: CLASSIC** in the top-right header; click it
+The mode selector reads **CODEC: CLASSIC** in the top-right header; click it
 for **CODEC: RIT**. The rest of the layout remains familiar. Building does not
 install the AU. Pull the latest source, rebuild, quit the host, and repeat the
 sign/copy/registrar/AU-validation steps under Local AU iteration above. Then reopen
@@ -263,3 +257,32 @@ converting to WAV. Enabling the option without installed headers/library fails
 CMake configuration. Removing libsndfile after linking an extended executable can
 instead cause an OS loader error before the CLI starts; reinstall the dependency
 or rebuild with the option OFF. The application cannot intercept loader errors.
+
+## Standalone file app
+
+```sh
+cmake -S . -B build/standalone -DCMAKE_BUILD_TYPE=Release \
+  -DRITUAL_BUILD_STANDALONE=ON -DRITUAL_BUILD_VST3=OFF -DRITUAL_BUILD_AU=OFF
+cmake --build build/standalone --config Release --parallel
+ctest --test-dir build/standalone -C Release --output-on-failure
+```
+
+Use `RITUAL_JUCE_SOURCE_DIR` for an offline build as above. The target is
+`RitualCodecApp`; macOS produces `RitualCodecApp_artefacts/Release/Ritual Codec.app`.
+The app is not notarized. Package it separately with `--kind standalone`; it is
+not included in the plugin ZIPs. Optional `--version` labels versioned local archives.
+The standalone render test checks mono/stereo output at 44.1, 48 and 96 kHz,
+exact bypass sample alignment, both processing modes, existing-file protection,
+malformed input rejection and cancellation during a six-minute render.
+Test audio is retained in a uniquely named folder in the build directory.
+
+For local macOS testing, complete the app bundle's ad-hoc signature after building:
+
+```sh
+codesign --force --sign - --timestamp=none \
+  "build/standalone/RitualCodecApp_artefacts/Release/Ritual Codec.app"
+codesign --verify --deep --strict \
+  "build/standalone/RitualCodecApp_artefacts/Release/Ritual Codec.app"
+```
+
+Ad-hoc signing does not provide Developer ID signing or notarization.

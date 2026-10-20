@@ -7,8 +7,57 @@ platform checks below are completed and recorded against a commit.
 | Platform / format | Current evidence | Still required |
 | --- | --- | --- |
 | Linux x64 CLI / VST3 | Local VM Release builds and automated tests; no DAW qualification | Real host playback, automation and sustained load |
-| macOS AU / VST3 | Earlier development builds passed; owner reported earlier local tests | Fresh latest checkout, native AU validation and DAW smoke test |
+| macOS arm64 app / AU / VST3 | 2026-10-19 local Release: 9/9 suites, AU validation, standalone and native DAW checks below | Second-machine installation; owner listening approval; broader OS/architecture qualification |
 | Windows VST3 / CLI | Earlier development CI build passed | Latest build and DAW smoke test |
+
+## macOS local candidate, 2026-10-19
+
+The candidate is an unreleased preview built from the working tree based on
+`ca158e0074bee12026be82e39e14286f429872dd`. Archive provenance identifies
+the base revision and whether tracked source was modified. Archive source ZIPs
+and checksums identify the packaged source and binaries.
+
+- Nine Release test suites pass, including processor behavior, streaming controls,
+  decoder hardening, eight packaging cases and standalone rendering. The latter
+  covers six mono/stereo rate combinations, exact bypass, both modes, malformed
+  input and cancellation during a six-minute render.
+- Native standalone checks cover playback, pause, stop, seek, output selection,
+  settings restore and Classic/RIT WAV export. Both modes played the complete
+  365.688-second stereo track. Both exports contain exactly 17,553,032 frames at
+  48 kHz, float32 stereo, with finite samples. RIT peak was 1.371; the effect has
+  no limiter. Repeat export preserved the previous file in Trash; recovery was
+  verified by restoring it and comparing its hash. Quit during an active export
+  preserved the existing destination and left no partial destination file.
+- The extracted standalone played three-second FLAC/AIFF fixtures and a short
+  portion of a full MP3. Malformed WAV and four-channel WAV were rejected while
+  preserving the previous track. Output switched between built-in and virtual
+  devices; selecting none disabled Play and survived restart. Restoring speakers
+  enabled playback without automatic playback. Buffers changed 512 to 256 and
+  back. Physical hardware disconnect remains untested.
+- REAPER 7.27: AU/VST3 Classic/RIT controls, presets, bypass, save/reopen,
+  editor open/close, 44.1/48/96 kHz and 256-sample reported latency. A four-instance
+  matrix ran over ten minutes at 48 kHz/32 samples with seven parameters per
+  instance switching endpoints at 10 Hz. Native editors confirmed automation in
+  all four format/mode combinations. Sampled FX CPU totaled about 3%; this does
+  not establish zero hardware underruns. Its 61-second offline render (including
+  a one-second tail) was finite with peak 0.1300 and zero clipped samples.
+- Versioned arm64 standalone, AU, VST3 and CLI archives were extracted locally.
+  The installed plugins match every packaged file, pass strict ad-hoc signature
+  checks and AU validation, and reload in the saved four-instance REAPER project.
+  Both extracted CLI programs processed the 24-second stereo fixture. The
+  packaged source rebuilt app/AU/VST3/CLI without an external JUCE cache and passed
+  all nine test suites. The configured JUCE tree retains 25 named license,
+  NOTICE and SPDX files plus notices embedded in source. This is a technical
+  inventory, not independent legal certification.
+- These particular local binaries are arm64 and have a macOS 26.6 deployment
+  target; tested on 26.6.2. Older macOS, Intel and universal builds require their
+  own builds and qualification. CI changes were syntax-checked locally only.
+- Ableton Live 12.3.1: VST3 playback at 48 kHz and save/reopen. The owner
+  separately confirmed the editor opens and audio sounds good. This is narrower
+  coverage than the REAPER matrix.
+- No second-machine, Intel, physical device-disconnect or downloaded-Gatekeeper
+  test has been completed. Automated rendering is not human listening approval.
+- No public release, hosted CI run, Developer ID signing or notarization occurred.
 
 ## Local gates
 
@@ -94,6 +143,6 @@ checked 2026-09-20. Status: pending publication; no settings or visibility chang
 
 ## Validation ownership
 
-As of 2026-09-20, Colin is handling listening and DAW validation. Keep those
-checklist gates open until results identify the tested revision, platform and
-host. Documentation and historical-preview review are separate from audio approval.
+Colin owns final listening approval. Local agent-operated checks above identify
+the tested host and scope; second-machine and distribution gates remain separate.
+Documentation and historical-preview review are separate from audio approval.

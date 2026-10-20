@@ -12,19 +12,21 @@ python3 tools/package_release.py --build-dir build --output-dir dist \
 
 Use `macos-arm64`, `macos-universal`, or `windows-x64` only when they describe the
 actual build. The label does not select or verify a CPU architecture. `--kind au`
-is available for a macOS build. Omit `--kind` to package CMake-enabled targets.
+and `--kind standalone` are available for a macOS build. Omit `--kind` to package CMake-enabled targets.
 Use a dedicated build directory for the configuration being released: multiple
 Debug/Release copies are rejected rather than guessed.
 
 Each CLI archive includes **both** `ritual-codec` and `ritual-stream`. A missing
-executable is an error. Plugin bundles are packaged separately by format. Every
+executable is an error. Plugin bundles are packaged separately by format. The standalone archive contains
+`STANDALONE/Ritual Codec.app`. Pass `--version 0.2.0-preview.1` to include
+a version label in filenames and provenance. The label does not change the app version. Every
 archive contains documentation, font/project notices, `SHA256SUMS.txt`, build
 provenance and a project source ZIP drawn from explicit source directories and
 file lists. Local logs, audio renders, caches and root-level scratch files are
 excluded. Review source directories before packaging; the allowlist is not a
 secret scanner.
 
-Plugin source ZIPs additionally include the actual configured JUCE tree under
+Plugin and standalone source ZIPs additionally include the actual configured JUCE tree under
 `ritual-codec/JUCE/`, preserving upstream sources, embedded copyright statements,
 license/NOTICE files and SPDX inventory. Git metadata and generated build trees
 are excluded. The top-level JUCE license and inventory are also copied beside
@@ -47,9 +49,12 @@ and notices is a technical packaging measure, not independent legal certificatio
 Verification checks archive CRCs, paths, hashes, file types and Unix permission
 metadata; extracted regular files are compared against the staging tree. On
 macOS, native `ditto` extraction additionally checks symlinks, permissions and
-completed plugin signatures with `codesign --verify --strict`. Ad-hoc signing
+completed plugin and app signatures with `codesign --verify --strict`. Ad-hoc signing
 is not notarization. The Windows verification checks bytes and paths; Windows
 permissions are not represented as Unix execute bits.
+
+On macOS, replaced archives and temporary staging/extraction folders are moved
+to Trash. Packaging requires permission to use the current user’s Trash.
 
 Run `python3 tests/test_packaging.py` to exercise isolated fixture builds. These
 checks do not replace installing the final archive in a DAW. See

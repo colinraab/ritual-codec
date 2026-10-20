@@ -11,6 +11,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import re
+import uuid
+from contextlib import contextmanager
 import shutil
 import stat
 import subprocess
@@ -43,10 +46,13 @@ SOURCE_FILES = (
 SOURCE_DIRS = (
     "src",
     "plugin",
+    "standalone",
     "tests",
     "tools",
 )
 SOURCE_ASSET_FILES = (
+    "standalone/assets/RitualCodec.png",
+    "standalone/assets/generate-icon.swift",
     "assets/fonts/CormorantGaramond-OFL.txt",
     "assets/fonts/CormorantGaramond.ttf",
     "assets/fonts/IBMPlexMono-Regular.ttf",
@@ -84,9 +90,41 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=Path("dist"))
     parser.add_argument("--platform", required=True,
                         help="Artifact platform label, for example linux-x64")
-    parser.add_argument("--kind", action="append", choices=["cli", "vst3", "au"],
+    parser.add_argument("--kind", action="append", choices=["cli", "vst3", "au", "standalone"],
                         help="Package only this kind (repeatable); defaults to enabled CMake targets")
-    return parser.parse_args()
+    parser.add_argument("--version", help="Optional version label included in archive filenames")
+    args = parser.parse_args()
+    for label in (args.platform, args.version):
+        if label is not None and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", label):
+            parser.error("platform and version labels must contain only letters, numbers, dots, underscores or hyphens")
+    return args
+
+
+def discard_generated(path: Path) -> None:
+    """Move generated items to Trash on macOS; remove them on other hosts."""
+    if sys.platform == "darwin":
+        trash = Path.home() / ".Trash"
+        trash.mkdir(exist_ok=True)
+        shutil.move(str(path), str(trash / (path.name + "-" + uuid.uuid4().hex)))
+    elif path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
+
+
+@contextmanager
+def extraction_directory():
+    directory = Path(tempfile.mkdtemp(prefix="ritual-extract-"))
+    try:
+        yield directory
+    finally:
+        discard_generated(directory)
+
+
+def find_standalone_outputs(build_dir: Path) -> list[Path]:
+    """Find only the macOS standalone target, excluding JUCE helper apps."""
+    target = build_dir / "RitualCodecApp_artefacts"
+    return unique_bundles(target, ".app") if target.is_dir() else []
 
 
 def _binary_search_paths(build_dir: Path, names: set[str]) -> list[Path]:
@@ -428,6 +466,8 @@ def copy_common_docs(stage: Path, root: Path, build_dir: Path,
         (root / "reports" / "source_provenance.json",
          docs / "reports" / "source_provenance.json"),
         (root / "docs" / "BUILDING.md", docs / "BUILDING.md"),
+        (root / "docs" / "INSTALLING.md", docs / "INSTALLING.md"),
+        (root / "docs" / "PACKAGING.md", docs / "PACKAGING.md"),
     ]
     missing = [str(source) for source, _ in required if not source.is_file()]
     if missing:
@@ -475,10 +515,22 @@ def copy_common_docs(stage: Path, root: Path, build_dir: Path,
         f"JUCE version: {resolved_version}\n" + juce_note,
         encoding="utf-8")
 
+    revision = "unavailable (source export)"
+    source_status = "unavailable (source export)"
+    if shutil.which("git"):
+        result = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
+                                capture_output=True, text=True)
+        if result.returncode == 0:
+            revision = result.stdout.strip()
+            result = subprocess.run(["git", "-C", str(root), "diff", "--quiet", "HEAD"],
+                                    capture_output=True)
+            source_status = "clean tracked files" if result.returncode == 0 else "modified tracked files"
     manifest = stage / "BUILD_PROVENANCE.txt"
     manifest.write_text(
         "Ritual Codec build artifact\n"
         f"Artifact kind: {artifact_kind}\n"
+        f"Source revision: {revision}\n"
+        f"Source status: {source_status}\n"
         f"Platform label: {platform}\n"
         f"JUCE version: {resolved_version}\n"
         f"JUCE source: {resolved_source}\n"
@@ -567,7 +619,7 @@ def verify_archive(stage: Path, archive: Path) -> None:
     # Extract regular files into a fresh directory as a second path/hash
     # check.  Python's extractor does not recreate symlinks, so symlinks are
     # validated from their ZIP metadata above.
-    with tempfile.TemporaryDirectory(prefix="ritual-extract-") as temporary:
+    with extraction_directory() as temporary:
         extracted = Path(temporary)
         if sys.platform == "darwin":
             subprocess.run(["/usr/bin/ditto", "-x", "-k", str(archive), str(extracted)], check=True)
@@ -589,7 +641,7 @@ def verify_archive(stage: Path, archive: Path) -> None:
                 raise PackagingError(f"extracted bytes differ for {original}")
 
         if sys.platform == "darwin":
-            for bundle in list(extracted.rglob("*.component")) + list(extracted.rglob("*.vst3")):
+            for bundle in list(extracted.rglob("*.component")) + list(extracted.rglob("*.vst3")) + list(extracted.rglob("*.app")):
                 subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(bundle)], check=True)
 
 
@@ -617,11 +669,11 @@ def _validate_sources(kind: str, sources: list[Path], build_dir: Path) -> None:
 
 
 def make_archive(root: Path, build_dir: Path, output_dir: Path,
-                 platform: str, kind: str, sources: list[Path]) -> Path:
+                 platform: str, kind: str, sources: list[Path], version: str | None = None) -> Path:
     _validate_sources(kind, sources, build_dir)
     stage = output_dir / f".staging-{kind}"
     if stage.exists():
-        shutil.rmtree(stage)
+        discard_generated(stage)
     stage.mkdir(parents=True)
 
     if kind == "cli":
@@ -637,6 +689,9 @@ def make_archive(root: Path, build_dir: Path, output_dir: Path,
                             symlinks=True)
 
     copy_common_docs(stage, root, build_dir, kind, platform)
+    if version:
+        with (stage / "BUILD_PROVENANCE.txt").open("a", encoding="utf-8") as manifest:
+            manifest.write(f"Version label: {version}\n")
     sums = []
     for entry in _stage_entries(stage):
         if entry.is_symlink():
@@ -645,12 +700,13 @@ def make_archive(root: Path, build_dir: Path, output_dir: Path,
             continue
         sums.append(f"{hashlib.sha256(entry.read_bytes()).hexdigest()}  {entry.relative_to(stage).as_posix()}")
     (stage / "SHA256SUMS.txt").write_text("\n".join(sums) + "\n", encoding="utf-8")
-    archive = output_dir / f"ritual-codec-{platform}-{kind}.zip"
+    version_label = f"-{version}" if version else ""
+    archive = output_dir / f"ritual-codec{version_label}-{platform}-{kind}.zip"
     if archive.exists():
-        archive.unlink()
+        discard_generated(archive)
     zip_stage(stage, archive)
     verify_archive(stage, archive)
-    shutil.rmtree(stage)
+    discard_generated(stage)
     return archive
 
 
@@ -673,6 +729,7 @@ def main() -> int:
         "vst3": unique_bundles(build_dir, ".vst3"),
         "au": unique_bundles(build_dir, ".component"),
         "cli": [],
+        "standalone": find_standalone_outputs(build_dir),
     }
     try:
         available["cli"] = find_cli_outputs(build_dir)
@@ -685,17 +742,17 @@ def main() -> int:
     if requested is None:
         cache_values = _read_cache_values(build_dir / "CMakeCache.txt")
         if cache_values:
-            requested = [kind for kind in ("cli", "vst3", "au")
+            requested = [kind for kind in ("cli", "vst3", "au", "standalone")
                          if _cache_enabled(cache_values, kind)]
         else:
-            requested = [kind for kind in ("cli", "vst3", "au")
+            requested = [kind for kind in ("cli", "vst3", "au", "standalone")
                          if available[kind]]
     if not requested:
         raise PackagingError("no enabled build outputs to package")
     if "cli" in requested and _read_cache_values(build_dir / "CMakeCache.txt").get("RITUAL_CLI_SNDFILE", "OFF").upper() in ("ON", "TRUE", "1", "YES"):
         raise PackagingError("Extended-input CLI builds depend on system libsndfile. Portable dependency/source/notice bundling is not implemented; package a RITUAL_CLI_SNDFILE=OFF build or distribute with an explicit system-dependency installation plan.")
     archives = [make_archive(root, build_dir, output_dir, args.platform, kind,
-                             available[kind]) for kind in dict.fromkeys(requested)]
+                             available[kind], args.version) for kind in dict.fromkeys(requested)]
     for archive in archives:
         print(archive)
     return 0

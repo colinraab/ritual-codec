@@ -1,5 +1,9 @@
 # Validation results — v0.1
 
+Historical measurements of the v0.1 engine. These figures do not qualify the
+current plug-in or standalone app. See
+[current release validation](../docs/RELEASE_VALIDATION.md) for current coverage.
+
 Engine delay: **256 samples / 5.333 ms at 48 kHz**, excluding audio hardware and host buffering.
 
 | Render | Speed vs real time | Median onset energy change, dB | Median onset normalized squared error | 4x oversampled peak |

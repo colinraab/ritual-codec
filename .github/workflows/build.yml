@@ -71,6 +71,7 @@ jobs:
             -DRITUAL_BUILD_CLI=ON
             -DRITUAL_BUILD_VST3=${{ matrix.vst3 }}
             -DRITUAL_BUILD_AU=${{ matrix.au }}
+            -DRITUAL_BUILD_STANDALONE=${{ matrix.au }}
             -DRITUAL_BUILD_TESTS=ON
           )
           if [[ '${{ matrix.apple_universal }}' == 'ON' ]]; then
@@ -112,7 +113,8 @@ jobs:
             echo "refusing to overwrite existing AU component: $staged_path" >&2
             exit 1
           fi
-          trap 'rm -rf "$staged_path"' EXIT
+          mkdir -p "$HOME/.Trash"
+          trap 'mv "$staged_path" "$HOME/.Trash/ritual-ci-au-$RANDOM.component"' EXIT
           ditto "$au_path" \
             "$staged_path"
           # A new AU may not be visible to the runner's cached registrar yet.
@@ -146,6 +148,16 @@ jobs:
           /usr/bin/codesign --force --sign - --timestamp=none "$vst3_path"
           /usr/bin/codesign --verify --strict "$vst3_path"
 
+      - name: Sign completed standalone app
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_path="build/RitualCodecApp_artefacts/Release/Ritual Codec.app"
+          test -d "$app_path"
+          /usr/bin/codesign --force --sign - --timestamp=none "$app_path"
+          /usr/bin/codesign --verify --deep --strict "$app_path"
+
       - name: Package artifacts
         shell: bash
         run: |
@@ -158,6 +170,7 @@ jobs:
           test -f "dist/ritual-codec-${{ matrix.platform }}-vst3.zip"
           if [[ '${{ matrix.au }}' == 'ON' ]]; then
             test -f "dist/ritual-codec-${{ matrix.platform }}-au.zip"
+            test -f "dist/ritual-codec-${{ matrix.platform }}-standalone.zip"
           fi
 
       - name: Upload CLI artifact
@@ -183,4 +196,13 @@ jobs:
           retention-days: 7
           archive: false
           path: dist/ritual-codec-${{ matrix.platform }}-au.zip
+          if-no-files-found: error
+
+      - name: Upload standalone artifact
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          retention-days: 7
+          archive: false
+          path: dist/ritual-codec-${{ matrix.platform }}-standalone.zip
           if-no-files-found: error

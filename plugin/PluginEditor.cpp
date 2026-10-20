@@ -195,6 +195,15 @@ public:
         setColour (juce::TextButton::textColourOffId, mutedTextColour);
         setColour (juce::TextButton::textColourOnId, textColour);
         setColour (juce::ToggleButton::textColourId, textColour);
+        setColour (juce::ComboBox::backgroundColourId, panelRaisedColour);
+        setColour (juce::ComboBox::textColourId, textColour);
+        setColour (juce::ComboBox::outlineColourId, lineColour);
+        setColour (juce::ComboBox::arrowColourId, mutedTextColour);
+        setColour (juce::ComboBox::focusedOutlineColourId, accentBrightColour);
+        setColour (juce::PopupMenu::backgroundColourId, panelColour);
+        setColour (juce::PopupMenu::textColourId, textColour);
+        setColour (juce::PopupMenu::highlightedBackgroundColourId, trackColour);
+        setColour (juce::PopupMenu::highlightedTextColourId, textColour);
     }
 
     juce::Label* createSliderTextBox(juce::Slider& slider) override {
@@ -220,6 +229,9 @@ public:
     {
         return makeFont (15.0f, juce::Font::bold);
     }
+
+    juce::Font getComboBoxFont (juce::ComboBox&) override { return makeMonoFont (13.0f); }
+    juce::Font getPopupMenuFont() override { return makeMonoFont (13.0f); }
 
     static juce::TextLayout tooltipLayout (const juce::String& text)
     {
@@ -477,6 +489,15 @@ public:
     }
 };
 
+std::unique_ptr<juce::LookAndFeel> RitualAudioProcessorEditor::createLookAndFeel()
+{
+    return std::make_unique<RitualLookAndFeel>();
+}
+
+juce::Font RitualAudioProcessorEditor::displayFont (float height) { return makeFont (height); }
+juce::Font RitualAudioProcessorEditor::monoFont (float height) { return makeMonoFont (height); }
+
+
 //==============================================================================
 class RitualAudioProcessorEditor::MeterComponent final : public juce::Component,
                                                          public juce::SettableTooltipClient
@@ -607,13 +628,7 @@ RitualAudioProcessorEditor::RitualAudioProcessorEditor (RitualAudioProcessor& p)
     titleLabel.setJustificationType (juce::Justification::left);
     addAndMakeVisible (titleLabel);
 
-    subtitleLabel.setText ("spectral decay / transient ceremony", juce::dontSendNotification);
-    subtitleLabel.setFont (makeFont (13.0f));
-    subtitleLabel.setColour (juce::Label::textColourId, accentBrightColour);
-    subtitleLabel.setJustificationType (juce::Justification::left);
-    addAndMakeVisible (subtitleLabel);
-
-    statusLabel.setText ("LIVE / SPECTRAL DAMAGE", juce::dontSendNotification);
+    statusLabel.setText ("CLASSIC", juce::dontSendNotification);
     statusLabel.setFont (makeMonoFont (10.0f));
     statusLabel.setColour (juce::Label::textColourId, accentBrightColour);
     statusLabel.setJustificationType (juce::Justification::right);
@@ -959,13 +974,13 @@ void RitualAudioProcessorEditor::updateMetersAndStatus()
     }
 
     const bool bypassed = ritualProcessor.parameters.getRawParameterValue ("bypass")->load() >= 0.5f;
-    statusLabel.setText (bypassed ? "BYPASSED / LATENCY ALIGNED" :
-                        streaming ? "RIT / " + juce::String (ritualProcessor.streamBitrateKbps.load (std::memory_order_relaxed), 1) + " kbps" : "LIVE / SPECTRAL DAMAGE",
+    statusLabel.setText (bypassed ? "BYPASSED" :
+                        streaming ? juce::String (ritualProcessor.streamBitrateKbps.load (std::memory_order_relaxed), 1) + " kbps" : "",
                          juce::dontSendNotification);
     statusLabel.setColour (juce::Label::textColourId,
                            bypassed ? mutedTextColour : accentBrightColour);
     const auto sampleRate = ritualProcessor.getSampleRate();
-    juce::String latencyText ("FIXED LATENCY  /  256 samples");
+    juce::String latencyText ("LATENCY  /  256 samples");
     if (std::isfinite (sampleRate) && sampleRate > 0.0)
         latencyText << "  /  " << juce::String (256000.0 / sampleRate, 2) << " ms";
     latencyLabel.setText (latencyText, juce::dontSendNotification);
@@ -1040,23 +1055,6 @@ void RitualAudioProcessorEditor::paint (juce::Graphics& g)
         g.drawEllipse (x + 24.0f, y + 8.0f, 4.0f, 4.0f, 0.8f);
     }
     g.restoreState();
-    const auto pulseCentre = juce::Point<float> (header.getRight() - 165.0f,
-                                                  header.getCentreY() - 2.0f);
-    g.setColour (lineColour.withAlpha (0.85f));
-    g.drawEllipse (juce::Rectangle<float> (50.0f, 50.0f).withCentre (pulseCentre), 1.0f);
-    g.drawEllipse (juce::Rectangle<float> (42.0f, 42.0f).withCentre (pulseCentre), 0.7f);
-    juce::Path pulse;
-    pulse.startNewSubPath (pulseCentre.x - 20.0f, pulseCentre.y);
-    pulse.lineTo (pulseCentre.x - 11.0f, pulseCentre.y);
-    pulse.lineTo (pulseCentre.x - 5.0f, pulseCentre.y - 13.0f);
-    pulse.lineTo (pulseCentre.x + 1.0f, pulseCentre.y + 14.0f);
-    pulse.lineTo (pulseCentre.x + 7.0f, pulseCentre.y - 7.0f);
-    pulse.lineTo (pulseCentre.x + 12.0f, pulseCentre.y);
-    pulse.lineTo (pulseCentre.x + 20.0f, pulseCentre.y);
-    g.setColour (accentBrightColour.withAlpha (0.9f));
-    g.strokePath (pulse, { 1.25f, juce::PathStrokeType::mitered,
-                           juce::PathStrokeType::butt });
-
     // Main body panels.
     g.setColour (panelColour.withAlpha (0.9f));
     g.fillRect (signal);
@@ -1106,8 +1104,8 @@ void RitualAudioProcessorEditor::rebuildTextureMask()
     const auto addLabel = [&] (juce::Label& label)
     {
         auto text = label.getText();
-        if (&label == &statusLabel) text = "BYPASSED / LATENCY ALIGNED";
-        if (&label == &latencyLabel) text = "FIXED LATENCY  /  256 samples  /  5.33 ms";
+        if (&label == &statusLabel) text = "BYPASSED";
+        if (&label == &latencyLabel) text = "LATENCY  /  256 samples  /  5.33 ms";
         if (&label == &presetStatusLabel) text = "DAMAGED";
         juce::GlyphArrangement glyphs;
         glyphs.addLineOfText (label.getFont(), text, 0, 0);
@@ -1121,7 +1119,7 @@ void RitualAudioProcessorEditor::rebuildTextureMask()
                           ? box.getCentreX() - w * 0.5f : box.getX();
         add ({x, box.getCentreY() - h * 0.5f, w, h});
     };
-    for (auto* label : { &titleLabel, &subtitleLabel, &statusLabel, &spectralHeading,
+    for (auto* label : { &titleLabel, &statusLabel, &spectralHeading,
                          &timingHeading, &latencyLabel, &presetStatusLabel }) addLabel (*label);
     for (auto& label : controlLabels) addLabel (label);
     for (auto* slider : controlSliders)
@@ -1190,8 +1188,6 @@ void RitualAudioProcessorEditor::resized()
     auto header = content.removeFromTop (84);
     titleLabel.setBounds (header.getX() + 14, header.getY() + 3,
                           juce::jmax (180, header.getWidth() - 390), 43);
-    subtitleLabel.setBounds (header.getX() + 15, header.getY() + 49,
-                             juce::jmax (180, header.getWidth() - 410), 20);
     statusLabel.setBounds (header.getRight() - 238, header.getY() + 55, 226, 18);
     codecButton.setBounds (header.getRight() - 140, header.getY() + 8, 128, 24);
 

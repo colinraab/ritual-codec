@@ -15,6 +15,7 @@ set(RITUAL_JUCE_COMMIT "72782788ce18c2d4d760b28e0921d6ffc6431102" CACHE INTERNAL
 option(RITUAL_BUILD_CLI "Build the ritual-codec command-line renderer" ON)
 option(RITUAL_BUILD_VST3 "Build the Ritual Codec VST3 plug-in" ON)
 option(RITUAL_BUILD_AU "Build the Ritual Codec Audio Unit (Apple platforms only)" OFF)
+option(RITUAL_BUILD_STANDALONE "Build the standalone file player and WAV renderer" OFF)
 option(RITUAL_BUILD_TESTS "Build and register the engine and plug-in tests" ON)
 
 set(RITUAL_JUCE_SOURCE_DIR "" CACHE PATH
@@ -49,7 +50,7 @@ endif()
 
 # The CLI and engine tests deliberately do not reach this block when no plugin format is
 # requested. This keeps a fast, offline CLI-only build free of JUCE and its transitive tools.
-if(_ritual_plugin_formats)
+if(_ritual_plugin_formats OR RITUAL_BUILD_STANDALONE)
     set(JUCE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     set(JUCE_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
     set(JUCE_COPY_PLUGIN_AFTER_BUILD OFF CACHE BOOL "" FORCE)
@@ -109,43 +110,73 @@ if(_ritual_plugin_formats)
             "FetchContent commit ${RITUAL_JUCE_COMMIT}")
     endif()
 
-    # A single JUCE plug-in target emits whichever formats were selected above. AU is only
-    # passed on Apple hosts, which avoids JUCE attempting to configure an unavailable SDK.
-    juce_add_plugin(RitualCodec
-        COMPANY_NAME "Crrb"
-        BUNDLE_ID net.colinraab.ritualcodec
-        PRODUCT_NAME "Ritual Codec"
-        DESCRIPTION "Ritual Codec audio degradation effect"
-        IS_SYNTH FALSE
-        NEEDS_MIDI_INPUT FALSE
-        NEEDS_MIDI_OUTPUT FALSE
-        IS_MIDI_EFFECT FALSE
-        EDITOR_WANTS_KEYBOARD_FOCUS FALSE
-        COPY_PLUGIN_AFTER_BUILD FALSE
-        PLUGIN_MANUFACTURER_CODE Crrb
-        PLUGIN_CODE RtCd
-        AU_MAIN_TYPE kAudioUnitType_Effect
-        FORMATS ${_ritual_plugin_formats})
-
     juce_add_binary_data(RitualFonts SOURCES assets/fonts/IBMPlexMono-Regular.ttf assets/fonts/CormorantGaramond.ttf)
 
-    target_sources(RitualCodec PRIVATE
-        plugin/PluginProcessor.cpp
-        plugin/PluginEditor.cpp)
-    target_include_directories(RitualCodec PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        "${CMAKE_CURRENT_SOURCE_DIR}/plugin")
-    target_compile_features(RitualCodec PRIVATE cxx_std_17)
-    target_compile_definitions(RitualCodec PRIVATE
-        JUCE_WEB_BROWSER=0
-        JUCE_USE_CURL=0
-        JUCE_VST3_CAN_REPLACE_VST2=0)
-    target_link_libraries(RitualCodec PRIVATE
-        RitualFonts
-        juce::juce_audio_utils
-        juce::juce_dsp
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags)
+    # A single JUCE plug-in target emits whichever formats were selected above. AU is only
+    # passed on Apple hosts, which avoids JUCE attempting to configure an unavailable SDK.
+    if(_ritual_plugin_formats)
+        juce_add_plugin(RitualCodec
+            COMPANY_NAME "Crrb"
+            BUNDLE_ID net.colinraab.ritualcodec
+            PRODUCT_NAME "Ritual Codec"
+            DESCRIPTION "Ritual Codec audio degradation effect"
+            IS_SYNTH FALSE
+            NEEDS_MIDI_INPUT FALSE
+            NEEDS_MIDI_OUTPUT FALSE
+            IS_MIDI_EFFECT FALSE
+            EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+            COPY_PLUGIN_AFTER_BUILD FALSE
+            PLUGIN_MANUFACTURER_CODE Crrb
+            PLUGIN_CODE RtCd
+            AU_MAIN_TYPE kAudioUnitType_Effect
+            FORMATS ${_ritual_plugin_formats})
+
+
+        target_sources(RitualCodec PRIVATE
+            plugin/PluginProcessor.cpp
+            plugin/PluginEditor.cpp)
+        target_include_directories(RitualCodec PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src"
+            "${CMAKE_CURRENT_SOURCE_DIR}/plugin")
+        target_compile_features(RitualCodec PRIVATE cxx_std_17)
+        target_compile_definitions(RitualCodec PRIVATE
+            JUCE_WEB_BROWSER=0
+            JUCE_USE_CURL=0
+            JUCE_VST3_CAN_REPLACE_VST2=0)
+        target_link_libraries(RitualCodec PRIVATE
+            RitualFonts
+            juce::juce_audio_utils
+            juce::juce_dsp
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_warning_flags)
+
+    endif()
+
+    if(RITUAL_BUILD_STANDALONE)
+        juce_add_gui_app(RitualCodecApp
+            COMPANY_NAME "Crrb"
+            BUNDLE_ID net.colinraab.ritualcodec.standalone
+            PRODUCT_NAME "Ritual Codec"
+            ICON_BIG "standalone/assets/RitualCodec.png")
+        target_sources(RitualCodecApp PRIVATE
+            standalone/Main.cpp plugin/PluginProcessor.cpp plugin/PluginEditor.cpp)
+        target_include_directories(RitualCodecApp PRIVATE src plugin)
+        target_compile_features(RitualCodecApp PRIVATE cxx_std_17)
+        target_compile_definitions(RitualCodecApp PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+        target_link_libraries(RitualCodecApp PRIVATE RitualFonts
+            juce::juce_audio_utils juce::juce_dsp juce::juce_recommended_config_flags)
+        if(RITUAL_BUILD_TESTS)
+            add_executable(ritual-standalone-test standalone/TestRender.cpp
+                plugin/PluginProcessor.cpp plugin/PluginEditor.cpp)
+            target_include_directories(ritual-standalone-test PRIVATE src plugin)
+            target_compile_features(ritual-standalone-test PRIVATE cxx_std_17)
+            target_compile_definitions(ritual-standalone-test PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+            target_link_libraries(ritual-standalone-test PRIVATE RitualFonts
+                juce::juce_audio_utils juce::juce_dsp juce::juce_recommended_config_flags)
+            add_test(NAME ritual-standalone-render COMMAND ritual-standalone-test "${CMAKE_BINARY_DIR}")
+        endif()
+
+    endif()
 
     # Keep the resolved source description in the build tree so release packaging can record
     # the dependency provenance without relying on the caller's shell environment.

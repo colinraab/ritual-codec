@@ -1,5 +1,10 @@
 # Bit Famine — experimental music degradation engine, v0.1
 
+Historical design notes for the v0.1 CLI prototype, before the plug-in, RIT
+bitstream and standalone app. Commands and measurements below describe that
+snapshot. For current usage, see the [README](../README.md); for test coverage,
+see [release validation](RELEASE_VALIDATION.md).
+
 A portable C++17 streaming effect exploring short-window spectral quantization,
 competing frequency bands, stale spectral shapes, coarse update clocks, amplitude
 quantization and sample holding. Punch protects the start of detected attacks.

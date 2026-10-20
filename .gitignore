@@ -12,3 +12,7 @@ __pycache__/
 /audio/*.mp3
 
 /reports/*.log
+
+/audio/*.asd
+
+/audio/peaks/

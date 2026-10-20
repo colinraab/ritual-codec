@@ -1,5 +1,9 @@
 # Plugin validation — 0.2.0 development snapshot
 
+Historical development snapshot. The pending checks below describe this older
+Linux review, not the current Mac candidate. See
+[current release validation](../docs/RELEASE_VALIDATION.md) for the latest evidence.
+
 Validated on Linux x86-64 with GCC 13.3, CMake 3.28.3 and JUCE 9.0.2
 (commit `72782788ce18c2d4d760b28e0921d6ffc6431102`).
 

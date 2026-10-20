@@ -2,6 +2,15 @@
 
 ## 0.2.0 — unreleased experimental preview
 
+- Optional standalone file app with audio preview, seeking, output-device selection,
+  settings restoration and background 32-bit float WAV export.
+- Matching standalone transport and audio settings, embedded fonts, and a noisy
+  waveform app icon. Removed the decorative header subtitle and circle emblem.
+- Separate macOS standalone ZIP, versioned archive labels, matching app/icon
+  source, and manual CI packaging.
+- Hardened missing-output handling, normalized WAV overwrite confirmation and
+  export cancellation; regression tests cover malformed input and long renders.
+
 - Both CLIs accept native PCM24 WAV; optional installed libsndfile adds MP3/FLAC
   and extended WAV input. Outputs remain .rit or float32 WAV.
 
@@ -20,8 +29,9 @@
   are unchanged. The plugin does not record .rit files in the DAW.
 - Bitstreams remain lossy at all rates; block-edge distortion, changed peaks and
   stereo-image changes are possible. Format stability is not promised yet.
-- Local Linux regression and sanitizer testing completed. Latest Mac/AU, Windows
-  and DAW release validation are still pending. macOS development bundles may be ad-hoc signed; they are not Developer ID
-  signed or notarized. No production signing claim is made for other platforms.
+- Local macOS arm64 Release tests and native AU validation passed. Standalone,
+  REAPER AU/VST3 and Ableton VST3 checks are recorded in RELEASE_VALIDATION.md.
+  A second Mac, Intel/universal builds and latest Windows/Linux host qualification
+  remain open. macOS bundles are ad-hoc signed, without Developer ID or notarization.
 
 No public release has been published from this changelog entry.

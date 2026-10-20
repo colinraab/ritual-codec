@@ -22,6 +22,11 @@ public:
     explicit RitualAudioProcessorEditor (RitualAudioProcessor&);
     ~RitualAudioProcessorEditor() override;
 
+    // Share the editor's embedded fonts and controls with the file player.
+    static std::unique_ptr<juce::LookAndFeel> createLookAndFeel();
+    static juce::Font displayFont (float height);
+    static juce::Font monoFont (float height);
+
     void paint (juce::Graphics&) override;
     void paintOverChildren (juce::Graphics&) override;
     void resized() override;
@@ -62,7 +67,6 @@ private:
     void rebuildTextureMask();
 
     juce::Label titleLabel;
-    juce::Label subtitleLabel;
     juce::Label statusLabel;
     juce::Label spectralHeading;
     juce::Label timingHeading;

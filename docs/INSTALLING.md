@@ -8,14 +8,30 @@ platform has separate archives:
 | --- | --- |
 | `ritual-codec-<platform>-vst3.zip` | `VST3/Ritual Codec.vst3` plug-in |
 | `ritual-codec-<platform>-au.zip` | `AU/Ritual Codec.component` (macOS only) |
+| `ritual-codec-<platform>-standalone.zip` | `STANDALONE/Ritual Codec.app` (macOS) |
 | `ritual-codec-<platform>-cli.zip` | `bin/ritual-codec` and `bin/ritual-stream` command-line tools |
+
+Versioned filenames insert the version before the platform label, for example
+`ritual-codec-0.2.0-preview.1-macos-arm64-standalone.zip`. The local preview is
+Apple Silicon only and requires macOS 26.6 or later; other architectures and older
+macOS releases have not been qualified. See [release validation](RELEASE_VALIDATION.md).
 
 Every archive also includes licences, third-party notices, build provenance,
 SHA-256 checksums and the matching source code.
 
-Close your DAW before installing, then rescan plug-ins after copying.
+## Standalone app
 
-## Plug-in folders
+Extract the standalone ZIP and copy the whole `STANDALONE/Ritual Codec.app`
+bundle to Applications. Open audio or drop a file onto the app, choose an output
+device, and press Play. Export WAV opens a destination chooser each time and
+writes the entire source as processed 32-bit float WAV audio.
+
+## Plug-ins
+
+Close your DAW and back up any existing Ritual Codec bundle before replacing it.
+Rescan plug-ins after copying.
+
+### Plug-in folders
 
 | OS | VST3 | Audio Unit |
 | --- | --- | --- |
@@ -25,13 +41,15 @@ Close your DAW before installing, then rescan plug-ins after copying.
 
 Copy the whole `.vst3` or `.component` bundle (it is a folder), not its contents.
 
-## macOS: unsigned builds
+## macOS: ad-hoc signed builds
 
-The builds are not signed with an Apple Developer ID or notarized, so macOS
-Gatekeeper will block them after download. Once you have copied a bundle into
-the folder above, clear the download quarantine flag for that bundle only:
+Mac bundles are ad-hoc signed, without an Apple Developer ID or notarization.
+Downloaded Gatekeeper behavior has not been tested on a second Mac. If macOS
+blocks a downloaded build you trust, clear the download quarantine flag for that
+bundle only, using the path where you installed it:
 
 ```sh
+xattr -dr com.apple.quarantine "/Applications/Ritual Codec.app"
 xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/"Ritual Codec.vst3"
 xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/"Ritual Codec.component"
 ```

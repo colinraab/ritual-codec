@@ -67,3 +67,15 @@ original findings above describe the earlier revision; final Mac/Windows archive
 and any changed SDK/dependency configuration still require distribution review.
 See PACKAGING.md and docs/internal/release-hardening.json. No independent legal
 certification or proprietary-license decision is implied.
+
+## macOS local package inventory, 2026-10-19
+
+The arm64 app, AU and VST3 packages include the actual configured JUCE 9.0.2
+source tree with 25 separately named license/NOTICE/SPDX files and embedded
+source notices, both font licenses, project license notes and curated project
+source. The generated standalone icon and its Swift generator are included.
+The extracted project source rebuilt all four product targets and passed nine
+test suites. Both packaged default CLI executables processed a 24-second WAV.
+This closes the local source-reconstruction and notice-preservation check for
+this configuration; other platform/SDK configurations and publication remain
+separate gates. This inventory does not assert independent legal certification.

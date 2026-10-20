@@ -5,10 +5,10 @@ frequency bands compete for a scarce precision budget, old timbres linger in
 memory, and coarse digital clocks turn tails into texture, while **Punch** keeps
 drum attacks hitting hard.
 
-Available as a **VST3** and **Audio Unit** plug-in (built with JUCE), plus two
-small command-line tools. Free and open source under the AGPL.
+Available as a **VST3** and **Audio Unit** plug-in, a **standalone file player
+and WAV exporter**, and two command-line tools. Free and open source under the AGPL.
 
-![Ritual Codec plug-in interface](docs/plugin-preview.png)
+![Current Ritual Codec plug-in in Classic mode, with the Damaged preset and live spectrum display](docs/plugin-preview.png)
 
 > **Experimental preview (0.2.0).** The sound, presets and `.rit` file format
 > may change between versions. See the [changelog](CHANGELOG.md) and
@@ -33,7 +33,7 @@ attenuated and processed. See [ATTRIBUTION.md](ATTRIBUTION.md).
 
 ## Two modes
 
-The **CODEC** button in the plug-in header switches between:
+The **CODEC** button in the editor header switches between:
 
 - **Classic** (default): a spectral degradation effect. Budget is an artistic
   control, not a real bitrate.
@@ -45,15 +45,36 @@ The **CODEC** button in the plug-in header switches between:
 Both modes have a fixed latency of 256 samples (5.3 ms at 48 kHz), which is
 reported to the host so Mix and Bypass stay aligned.
 
+## Standalone app
+
+![Ritual Codec standalone app playing audio, with matching transport controls and WAV export](docs/standalone-preview.png)
+
+The standalone app opens or accepts a dropped mono/stereo audio file (8–192 kHz).
+Use Play/Pause, Stop and the seek bar to preview it through the same controls as
+the plug-in. Audio output selects the playback device; no microphone is needed.
+Effect settings, the last file and the output device are restored on launch.
+
+Export WAV opens a save dialog each time and renders the entire source with a
+snapshot of the current settings. The 32-bit floating-point WAV keeps the source
+sample rate, channel count and duration, with the effect latency removed. Preview
+is resampled to the output device's rate, so use a matching device rate when
+comparing it with the export. There is no limiter or normalization. Existing
+exports are moved to Trash after a replacement finishes; source files are protected.
+
+WAV, AIFF, FLAC, Ogg and MP3 input use JUCE's available readers. Multichannel files
+are rejected. Export runs in the background; closing the app cancels an active
+render. This first app exports WAV; `.rit` files still use `ritual-stream`.
+See [building the standalone app](docs/BUILDING.md#standalone-file-app).
+
 ## Controls
 
 | Control | Classic | RIT |
 | --- | --- | --- |
 | Budget | Precision available to the spectral quantizers | Packet size (bitrate) |
-| Competition | How strongly loud bands steal precision from quieter ones | ✓ |
-| Memory | How long previous spectral shapes persist | ✓ |
-| Punch | Extra attack precision plus a brief blend toward the original attack | ✓ |
-| Crunch | Coarse time-domain amplitude quantization | ✓ |
+| Competition | How strongly loud bands steal precision from quieter ones | Favors strong components over quiet ones |
+| Memory | How long previous spectral shapes persist | Retains spectral shapes in the encoded audio |
+| Punch | Extra attack precision plus a brief blend toward the original attack | Preserves encoded attacks; no original PCM blend |
+| Crunch | Coarse time-domain amplitude quantization | Coarsens encoded coefficients |
 | Clock | Number of 64-sample hops between spectral-shape refreshes | — |
 | Downsample | Sample-and-hold interval, deliberately without anti-aliasing | — |
 | Mix | Latency-aligned dry/wet balance | ✓ |
@@ -67,10 +88,11 @@ monitoring levels.
 
 ## Install
 
-Download a build for your platform from the
-[Releases page](https://github.com/colinraab/ritual-codec/releases) and follow
-[the install guide](docs/INSTALLING.md). Builds are unsigned, and the guide
-covers the one extra step macOS needs.
+When prebuilt downloads are available, get the archive for your platform from
+the [Releases page](https://github.com/colinraab/ritual-codec/releases) and follow
+[the install guide](docs/INSTALLING.md). Version 0.2.0 is currently unreleased.
+The locally tested Mac preview is Apple Silicon only and requires macOS 26.6
+or later. It is ad-hoc signed, without Developer ID signing or notarization.
 
 ### Build from source
 
@@ -83,12 +105,15 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
 
-# Add the Audio Unit on macOS
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DRITUAL_BUILD_AU=ON
+# Add the Audio Unit and standalone app on macOS
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DRITUAL_BUILD_AU=ON -DRITUAL_BUILD_STANDALONE=ON
+cmake --build build --config Release
 
 # CLI tools only (no JUCE)
 cmake -S . -B build-cli -DCMAKE_BUILD_TYPE=Release \
-  -DRITUAL_BUILD_VST3=OFF -DRITUAL_BUILD_AU=OFF
+  -DRITUAL_BUILD_VST3=OFF -DRITUAL_BUILD_AU=OFF -DRITUAL_BUILD_STANDALONE=OFF
+cmake --build build-cli --config Release
 ```
 
 Builds are not copied into your system plug-in folders automatically. See
@@ -135,15 +160,19 @@ measurements, and [BITSTREAM.md](docs/BITSTREAM.md) for the `.rit` format.
 | `src/rit_stream.hpp` | `.rit` encoder, decoder and streaming implementation |
 | `src/main.cpp`, `src/rit_main.cpp` | The two command-line tools |
 | `plugin/` | JUCE processor, editor, presets and spectrum display |
+| `standalone/` | File player, background WAV renderer and app icon |
 | `tests/` | Engine, bitstream, fuzz-style decoder, plug-in and packaging tests |
 | `tools/` | Demo audio, measurement and release packaging scripts |
 | `reports/` | Measurement results referenced by the docs |
 
 ## Status
 
-Linux builds and the automated test suites pass. Earlier development builds
-passed on macOS (including Audio Unit validation) and Windows, and the current
-version still needs DAW testing on those platforms. See [RELEASE_VALIDATION.md](docs/RELEASE_VALIDATION.md).
+The current macOS arm64 candidate passes nine automated suites, AU validation,
+standalone playback/export checks, REAPER AU/VST3 testing and a narrower Ableton
+VST3 check. Linux has local build/test evidence; Windows has an earlier development
+build. Second-machine installation, broader compatibility and final listening
+approval remain open. See [release validation](docs/RELEASE_VALIDATION.md) for the
+exact scope and the [documentation index](docs/README.md) for the other guides.
 
 Ideas for later: independent band clocks, a dedicated low-band path, separate
 attack and decay controls, and further tuning of the RIT bitstream.
